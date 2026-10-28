@@ -17,7 +17,7 @@ function App() {
         const data = await response.json();
 
         setApiStatus(data.message);
-      } catch (error) {
+      } catch {
         setApiStatus("Backend API is unavailable");
       }
     };
@@ -29,13 +29,9 @@ function App() {
     <div>
       <h1>GitSummarizer</h1>
 
-      <p>
-        Understand GitHub repositories with AI.
-      </p>
+      <p>Understand GitHub repositories with AI.</p>
 
-      <p>
-        API Status: {apiStatus}
-      </p>
+      <p>API Status: {apiStatus}</p>
     </div>
   );
 }
