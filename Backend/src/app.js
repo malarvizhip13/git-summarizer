@@ -2,7 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 
-const pool = require("./config/database");
+const apiRoutes = require("./routes");
+const notFound = require("./middleware/notFound");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
@@ -11,35 +13,17 @@ app.use(helmet());
 app.use(
   cors({
     origin: "http://localhost:5173",
+    credentials: true,
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true }));
 
-app.get("/api/v1/health", async (req, res) => {
-  try {
-    await pool.query("SELECT 1");
+app.use("/api/v1", apiRoutes);
 
-    return res.status(200).json({
-      success: true,
-      message: "GitSummarizer API is running",
-      services: {
-        api: "healthy",
-        database: "healthy",
-      },
-    });
-  } catch (error) {
-    console.error("Health check failed:", error);
+app.use(notFound);
 
-    return res.status(503).json({
-      success: false,
-      message: "GitSummarizer API is unhealthy",
-      services: {
-        api: "healthy",
-        database: "unhealthy",
-      },
-    });
-  }
-});
+app.use(errorHandler);
 
 module.exports = app;
