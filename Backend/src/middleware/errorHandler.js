@@ -1,9 +1,9 @@
 const errorHandler = (error, req, res, next) => {
-  console.error(error);
+  console.error("Unhandled error:", error);
 
   const statusCode = error.statusCode || 500;
 
-  res.status(statusCode).json({
+  return res.status(statusCode).json({
     success: false,
     error: {
       message:

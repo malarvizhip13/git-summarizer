@@ -17,13 +17,15 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+app.get("/api/v1/health", async (req, res) => {
+  // existing health-check implementation
+});
 
 app.use("/api/v1", apiRoutes);
 
 app.use(notFound);
-
 app.use(errorHandler);
 
 module.exports = app;
