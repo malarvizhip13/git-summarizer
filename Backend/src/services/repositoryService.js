@@ -3,6 +3,10 @@ const repositoryRepository = require(
   "../repositories/repositoryRepository"
 );
 
+const analysisRepository = require(
+  "../repositories/analysisRepository"
+);
+
 const {
   analyzeGitHubRepository,
 } = require("./analysisService");
@@ -90,9 +94,75 @@ const getRepositoryByIdAndUserId = async ({
 };
 
 /**
- * Analyze a saved GitHub repository.
+ * Analyze a saved GitHub repository and persist its result.
  */
 const analyzeRepositoryByIdAndUserId = async ({
+  repositoryId,
+  userId,
+}) => {
+  // Step 1: Verify repository ownership.
+  const repository = await getRepositoryByIdAndUserId({
+    repositoryId,
+    userId,
+  });
+
+  // Step 2: Create a running analysis record.
+  const analysisRecord = await analysisRepository.createAnalysis(
+    repository.id
+  );
+
+  try {
+    // Step 3: Execute the GitHub analysis pipeline.
+    const analysisResult = await analyzeGitHubRepository({
+      owner: repository.github_owner,
+      repository: repository.github_name,
+      branch: repository.default_branch,
+    });
+
+    // Step 4: Persist the completed analysis.
+    const completedAnalysis =
+      await analysisRepository.completeAnalysis({
+        analysisId: analysisRecord.id,
+        commitSha: analysisResult.source.commitSha,
+        analysisResult,
+      });
+
+    if (!completedAnalysis) {
+      throw new Error(
+        "Analysis record could not be marked as completed."
+      );
+    }
+
+    return {
+      repository,
+      analysisRecord: completedAnalysis,
+      analysis: completedAnalysis.analysis_result,
+    };
+  } catch (error) {
+    // Step 5: Record the failure before propagating the error.
+    try {
+      const failedAnalysis =
+        await analysisRepository.failAnalysis({
+          analysisId: analysisRecord.id,
+          errorMessage: error.message || "Repository analysis failed.",
+        });
+
+      if (!failedAnalysis) {
+        error.persistenceError =
+          "The analysis failure status could not be saved.";
+      }
+    } catch (persistenceError) {
+      error.persistenceError = persistenceError.message;
+    }
+
+    throw error;
+  }
+};
+
+/**
+ * Retrieve analysis history for a saved repository.
+ */
+const getAnalysisHistory = async ({
   repositoryId,
   userId,
 }) => {
@@ -101,21 +171,53 @@ const analyzeRepositoryByIdAndUserId = async ({
     userId,
   });
 
-  const analysis = await analyzeGitHubRepository({
-    owner: repository.github_owner,
-    repository: repository.github_name,
-    branch: repository.default_branch,
-  });
+  const analyses =
+    await analysisRepository.findAnalysesByRepositoryAndUser(
+      repository.id,
+      userId
+    );
 
   return {
     repository,
-    analysis,
+    analyses,
   };
 };
 
+/**
+ * Retrieve one persisted analysis.
+ */
+const getAnalysisById = async ({
+  analysisId,
+  userId,
+}) => {
+  validateUserId(userId);
+
+  if (!isValidUUID(analysisId)) {
+    const error = new Error("Invalid analysis ID.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const analysis =
+    await analysisRepository.findAnalysisByIdAndUser(
+      analysisId,
+      userId
+    );
+
+  if (!analysis) {
+    const error = new Error("Analysis not found.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return analysis;
+};
 module.exports = {
   saveRepository,
   getRepositoriesByUserId,
   getRepositoryByIdAndUserId,
   analyzeRepositoryByIdAndUserId,
+  getAnalysisHistory,
+  getAnalysisById,
 };
+

@@ -111,10 +111,52 @@ const analyzeRepository = async (req, res, next) => {
     return next(error);
   }
 };
+/**
+ * GET /api/v1/repositories/:id/analyses
+ */
+const getAnalysisHistory = async (req, res, next) => {
+  try {
+    const result = await require("../services/repositoryService")
+      .getAnalysisHistory({
+        repositoryId: req.params.id,
+        userId: env.DEV_USER_ID,
+      });
 
+    return res.status(200).json({
+      success: true,
+      count: result.analyses.length,
+      repository: result.repository,
+      analyses: result.analyses,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * GET /api/v1/analyses/:analysisId
+ */
+const getAnalysisById = async (req, res, next) => {
+  try {
+    const analysis = await require("../services/repositoryService")
+      .getAnalysisById({
+        analysisId: req.params.analysisId,
+        userId: env.DEV_USER_ID,
+      });
+
+    return res.status(200).json({
+      success: true,
+      analysis,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
 module.exports = {
   createRepository,
   getRepositories,
   getRepositoryById,
   analyzeRepository,
+  getAnalysisHistory,
+  getAnalysisById,
 };

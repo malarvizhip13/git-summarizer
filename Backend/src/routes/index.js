@@ -57,5 +57,14 @@ router.post(
   "/repositories/:id/analyze",
   repositoryController.analyzeRepository
 );
+router.get(
+  "/repositories/:id/analyses",
+  repositoryController.getAnalysisHistory
+);
 
+router.get(
+  "/analyses/:analysisId",
+  repositoryController.getAnalysisById
+);
 module.exports = router;
+
