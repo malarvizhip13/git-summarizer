@@ -1,6 +1,11 @@
+
 const repositoryRepository = require(
   "../repositories/repositoryRepository"
 );
+
+const {
+  analyzeGitHubRepository,
+} = require("./analysisService");
 
 /**
  * Validate UUID format.
@@ -65,7 +70,6 @@ const getRepositoryByIdAndUserId = async ({
 
   if (!isValidUUID(repositoryId)) {
     const error = new Error("Invalid repository ID.");
-
     error.statusCode = 400;
     throw error;
   }
@@ -78,7 +82,6 @@ const getRepositoryByIdAndUserId = async ({
 
   if (!repository) {
     const error = new Error("Repository not found.");
-
     error.statusCode = 404;
     throw error;
   }
@@ -86,8 +89,33 @@ const getRepositoryByIdAndUserId = async ({
   return repository;
 };
 
+/**
+ * Analyze a saved GitHub repository.
+ */
+const analyzeRepositoryByIdAndUserId = async ({
+  repositoryId,
+  userId,
+}) => {
+  const repository = await getRepositoryByIdAndUserId({
+    repositoryId,
+    userId,
+  });
+
+  const analysis = await analyzeGitHubRepository({
+    owner: repository.github_owner,
+    repository: repository.github_name,
+    branch: repository.default_branch,
+  });
+
+  return {
+    repository,
+    analysis,
+  };
+};
+
 module.exports = {
   saveRepository,
   getRepositoriesByUserId,
   getRepositoryByIdAndUserId,
+  analyzeRepositoryByIdAndUserId,
 };

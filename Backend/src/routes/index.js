@@ -1,3 +1,4 @@
+
 const express = require("express");
 
 const { query } = require("../config/database");
@@ -7,8 +8,6 @@ const router = express.Router();
 
 /**
  * GET /api/v1/health
- *
- * Checks whether the API and PostgreSQL database are available.
  */
 router.get("/health", async (req, res, next) => {
   try {
@@ -29,8 +28,6 @@ router.get("/health", async (req, res, next) => {
 
 /**
  * POST /api/v1/repositories
- *
- * Fetches and saves a GitHub repository.
  */
 router.post(
   "/repositories",
@@ -39,8 +36,6 @@ router.post(
 
 /**
  * GET /api/v1/repositories
- *
- * Retrieves all saved repositories.
  */
 router.get(
   "/repositories",
@@ -49,12 +44,18 @@ router.get(
 
 /**
  * GET /api/v1/repositories/:id
- *
- * Retrieves a single saved repository.
  */
 router.get(
   "/repositories/:id",
   repositoryController.getRepositoryById
+);
+
+/**
+ * POST /api/v1/repositories/:id/analyze
+ */
+router.post(
+  "/repositories/:id/analyze",
+  repositoryController.analyzeRepository
 );
 
 module.exports = router;

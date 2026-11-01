@@ -1,3 +1,4 @@
+
 const {
   parseGithubRepositoryUrl,
 } = require("../utils/githubUrl");
@@ -10,24 +11,20 @@ const {
   saveRepository,
   getRepositoriesByUserId,
   getRepositoryByIdAndUserId,
+  analyzeRepositoryByIdAndUserId,
 } = require("../services/repositoryService");
 
 const env = require("../config/env");
 
 /**
  * POST /api/v1/repositories
- *
- * Fetches GitHub repository details
- * and saves the repository in PostgreSQL.
  */
 const createRepository = async (req, res, next) => {
   try {
     const { githubUrl } = req.body || {};
 
-    const {
-      owner,
-      repository,
-    } = parseGithubRepositoryUrl(githubUrl);
+    const { owner, repository } =
+      parseGithubRepositoryUrl(githubUrl);
 
     const githubRepository = await getRepository(
       owner,
@@ -56,8 +53,6 @@ const createRepository = async (req, res, next) => {
 
 /**
  * GET /api/v1/repositories
- *
- * Retrieves all repositories belonging to the development user.
  */
 const getRepositories = async (req, res, next) => {
   try {
@@ -78,8 +73,6 @@ const getRepositories = async (req, res, next) => {
 
 /**
  * GET /api/v1/repositories/:id
- *
- * Retrieves a single repository by its UUID.
  */
 const getRepositoryById = async (req, res, next) => {
   try {
@@ -98,8 +91,30 @@ const getRepositoryById = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/v1/repositories/:id/analyze
+ */
+const analyzeRepository = async (req, res, next) => {
+  try {
+    const result = await analyzeRepositoryByIdAndUserId({
+      repositoryId: req.params.id,
+      userId: env.DEV_USER_ID,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Repository analysis completed successfully",
+      repository: result.repository,
+      analysis: result.analysis,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   createRepository,
   getRepositories,
   getRepositoryById,
+  analyzeRepository,
 };
