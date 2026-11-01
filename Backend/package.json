@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "Backend API for GitSummarizer",
   "main": "src/server.js",
-"scripts": {
-  "start": "node src/server.js",
-  "dev": "nodemon src/server.js",
-  "db:create-migration": "node-pg-migrate create",
-  "db:migrate": "node-pg-migrate up",
-  "db:rollback": "node-pg-migrate down"
-},
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:create-migration": "node-pg-migrate create",
+    "db:migrate": "node-pg-migrate up",
+    "db:rollback": "node-pg-migrate down"
+  },
   "keywords": [
     "github",
     "ai",
@@ -24,6 +24,7 @@
     "express": "^5.3.0",
     "helmet": "^8.3.0",
     "node-pg-migrate": "^9.0.0",
+    "octokit": "^5.0.5",
     "pg": "^8.23.1"
   },
   "devDependencies": {
