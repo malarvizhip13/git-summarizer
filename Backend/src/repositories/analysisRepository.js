@@ -28,18 +28,31 @@ const createAnalysis = async (repositoryId) => {
 
 /**
  * Mark an analysis as completed and persist its result.
+ *
+ * summary:
+ * Stores the AI-generated summary in the dedicated
+ * analyses.summary column.
+ *
+ * analysisResult:
+ * Stores the complete analysis response in JSONB.
  */
 const completeAnalysis = async ({
   analysisId,
   commitSha,
+  summary = null,
   analysisResult,
 }) => {
+  if (summary !== null && typeof summary !== "string") {
+    throw new TypeError("Analysis summary must be a string or null.");
+  }
+
   const sql = `
     UPDATE analyses
     SET
       status = 'completed',
       commit_sha = $2,
-      analysis_result = $3::jsonb,
+      summary = $3,
+      analysis_result = $4::jsonb,
       error_message = NULL,
       completed_at = CURRENT_TIMESTAMP
     WHERE id = $1
@@ -49,7 +62,9 @@ const completeAnalysis = async ({
       repository_id,
       status,
       commit_sha,
+      summary,
       analysis_result,
+      error_message,
       started_at,
       completed_at,
       created_at;
@@ -58,6 +73,7 @@ const completeAnalysis = async ({
   const values = [
     analysisId,
     commitSha,
+    summary,
     JSON.stringify(analysisResult),
   ];
 
@@ -98,6 +114,10 @@ const failAnalysis = async ({
 
   return result.rows[0] || null;
 };
+
+/**
+ * Retrieve analysis history for a repository owned by a user.
+ */
 const findAnalysesByRepositoryAndUser = async (
   repositoryId,
   userId
@@ -163,6 +183,7 @@ const findAnalysisByIdAndUser = async (
 
   return result.rows[0] || null;
 };
+
 module.exports = {
   createAnalysis,
   completeAnalysis,
@@ -170,7 +191,3 @@ module.exports = {
   findAnalysesByRepositoryAndUser,
   findAnalysisByIdAndUser,
 };
-
-/**
- * Retrieve analysis history for a repository owned by a user.
- */

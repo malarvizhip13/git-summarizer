@@ -11,6 +11,10 @@ const {
   analyzeGitHubRepository,
 } = require("./analysisService");
 
+// =========================================================
+// VALIDATION
+// =========================================================
+
 /**
  * Validate UUID format.
  */
@@ -34,6 +38,10 @@ const validateUserId = (userId) => {
     throw error;
   }
 };
+
+// =========================================================
+// REPOSITORY OPERATIONS
+// =========================================================
 
 /**
  * Save or update a GitHub repository.
@@ -93,6 +101,10 @@ const getRepositoryByIdAndUserId = async ({
   return repository;
 };
 
+// =========================================================
+// REPOSITORY ANALYSIS
+// =========================================================
+
 /**
  * Analyze a saved GitHub repository and persist its result.
  */
@@ -119,11 +131,18 @@ const analyzeRepositoryByIdAndUserId = async ({
       branch: repository.default_branch,
     });
 
-    // Step 4: Persist the completed analysis.
+    // Step 4: Extract the AI-generated summary.
+    const aiSummary =
+      typeof analysisResult.aiSummary?.summary === "string"
+        ? analysisResult.aiSummary.summary
+        : null;
+
+    // Step 5: Persist the completed analysis.
     const completedAnalysis =
       await analysisRepository.completeAnalysis({
         analysisId: analysisRecord.id,
         commitSha: analysisResult.source.commitSha,
+        summary: aiSummary,
         analysisResult,
       });
 
@@ -133,18 +152,20 @@ const analyzeRepositoryByIdAndUserId = async ({
       );
     }
 
+    // Step 6: Return the persisted analysis.
     return {
       repository,
       analysisRecord: completedAnalysis,
       analysis: completedAnalysis.analysis_result,
     };
   } catch (error) {
-    // Step 5: Record the failure before propagating the error.
+    // Step 7: Record the failure before propagating the error.
     try {
       const failedAnalysis =
         await analysisRepository.failAnalysis({
           analysisId: analysisRecord.id,
-          errorMessage: error.message || "Repository analysis failed.",
+          errorMessage:
+            error.message || "Repository analysis failed.",
         });
 
       if (!failedAnalysis) {
@@ -158,6 +179,10 @@ const analyzeRepositoryByIdAndUserId = async ({
     throw error;
   }
 };
+
+// =========================================================
+// ANALYSIS HISTORY
+// =========================================================
 
 /**
  * Retrieve analysis history for a saved repository.
@@ -212,6 +237,11 @@ const getAnalysisById = async ({
 
   return analysis;
 };
+
+// =========================================================
+// MODULE EXPORTS
+// =========================================================
+
 module.exports = {
   saveRepository,
   getRepositoriesByUserId,
@@ -220,4 +250,3 @@ module.exports = {
   getAnalysisHistory,
   getAnalysisById,
 };
-

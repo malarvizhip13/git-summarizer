@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 
 const requiredEnvVariables = [
@@ -18,6 +17,7 @@ for (const key of requiredEnvVariables) {
 }
 
 module.exports = {
+  // Application configuration
   NODE_ENV: process.env.NODE_ENV,
   PORT: Number(process.env.PORT),
 
@@ -31,6 +31,15 @@ module.exports = {
   // GitHub API configuration
   GITHUB_TOKEN: process.env.GITHUB_TOKEN || null,
 
+  // Ollama local AI configuration
+  OLLAMA_BASE_URL:
+    process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
+
+  OLLAMA_MODEL:
+    process.env.OLLAMA_MODEL || "qwen2.5-coder:7b",
+
+  OLLAMA_TIMEOUT:
+    Number(process.env.OLLAMA_TIMEOUT) || 300000,
   // Temporary development user
   DEV_USER_ID: process.env.DEV_USER_ID || null,
 };
