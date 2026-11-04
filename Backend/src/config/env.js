@@ -27,6 +27,8 @@ module.exports = {
   DB_NAME: process.env.DB_NAME,
   DB_USER: process.env.DB_USER,
   DB_PASSWORD: process.env.DB_PASSWORD,
+  DB_MIGRATION_USER: process.env.DB_MIGRATION_USER || null,
+  DB_MIGRATION_PASSWORD: process.env.DB_MIGRATION_PASSWORD || null,
 
   // GitHub API configuration
   GITHUB_TOKEN: process.env.GITHUB_TOKEN || null,
@@ -42,4 +44,12 @@ module.exports = {
     Number(process.env.OLLAMA_TIMEOUT) || 300000,
   // Temporary development user
   DEV_USER_ID: process.env.DEV_USER_ID || null,
+  GOOGLE_OAUTH_CLIENT_ID: process.env.GOOGLE_OAUTH_CLIENT_ID || null,
+  GOOGLE_OAUTH_CLIENT_SECRET:
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET || null,
+  GOOGLE_OAUTH_CALLBACK_URL:
+    process.env.GOOGLE_OAUTH_CALLBACK_URL ||
+    "http://localhost:5000/api/v1/auth/google/callback",
+  FRONTEND_URL:
+    process.env.FRONTEND_URL || "http://localhost:5173",
 };

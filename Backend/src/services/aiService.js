@@ -6,6 +6,10 @@ const {
   buildRepositorySummaryPrompt,
 } = require("../prompts/repositorySummaryPrompt");
 
+const {
+  analyzeRepositoryIntelligence,
+} = require("../analyzers/repositoryIntelligence");
+
 const DEFAULT_INSTRUCTIONS = `
 You are GitSummarizer, an experienced software engineer
 and code analysis assistant.
@@ -13,6 +17,8 @@ and code analysis assistant.
 Provide accurate, structured and understandable technical explanations.
 Do not invent project details that are not supported by the supplied input.
 `;
+
+const DEFAULT_OUTPUT_TOKENS = 1200;
 
 /**
  * Generate text using the local Ollama model.
@@ -32,9 +38,7 @@ const generateText = async ({
     typeof instructions !== "string" ||
     !instructions.trim()
   ) {
-    const error = new Error(
-      "Instructions must be a non-empty string."
-    );
+    const error = new Error("Instructions must be a non-empty string.");
     error.statusCode = 400;
     throw error;
   }
@@ -52,8 +56,16 @@ const generateText = async ({
   }
 
   const client = getOllamaClient();
+  const startedAt = Date.now();
+  const promptCharacters = input.length;
 
   try {
+    console.info("[AI] Inference started", {
+      model: env.OLLAMA_MODEL,
+      promptCharacters,
+      maxOutputTokens,
+    });
+
     const response = await client.chat.completions.create({
       model: env.OLLAMA_MODEL,
       messages: [
@@ -71,24 +83,49 @@ const generateText = async ({
       stream: false,
     });
 
-    const outputText =
-      response.choices?.[0]?.message?.content?.trim();
+    const choice = response.choices?.[0];
+    const outputText = choice?.message?.content?.trim();
+    const finishReason = choice?.finish_reason || "unknown";
+    const isComplete = finishReason === "stop";
 
     if (!outputText) {
-      const error = new Error(
-        "Ollama returned an empty response."
-      );
+      const error = new Error("Ollama returned an empty response.");
       error.statusCode = 502;
       throw error;
     }
+
+    const durationMs = Date.now() - startedAt;
+
+    console.info("[AI] Inference completed", {
+      model: response.model || env.OLLAMA_MODEL,
+      durationMs,
+      promptCharacters,
+      outputCharacters: outputText.length,
+      finishReason,
+      isComplete,
+      usage: response.usage || null,
+    });
 
     return {
       id: response.id || null,
       model: response.model || env.OLLAMA_MODEL,
       outputText,
       usage: response.usage || null,
+      durationMs,
+      finishReason,
+      isComplete,
     };
   } catch (error) {
+    const durationMs = Date.now() - startedAt;
+
+    console.error("[AI] Inference failed", {
+      model: env.OLLAMA_MODEL,
+      durationMs,
+      promptCharacters,
+      maxOutputTokens,
+      message: error.message,
+    });
+
     if (error.statusCode) {
       throw error;
     }
@@ -114,24 +151,39 @@ const generateRepositorySummary = async ({
   analysis,
   files,
 } = {}) => {
+  // Build additional repository intelligence from retrieved source files.
+  const intelligence = analyzeRepositoryIntelligence({
+    files,
+    analysis,
+  });
+
+  // Preserve existing static analysis and add intelligence.
+  const enrichedAnalysis = {
+    ...(analysis || {}),
+    intelligence,
+  };
+
   const prompt = buildRepositorySummaryPrompt({
     repository,
     source,
     retrieval,
-    analysis,
+    analysis: enrichedAnalysis,
     files,
   });
 
   const result = await generateText({
     input: prompt.input,
     instructions: prompt.instructions,
-    maxOutputTokens: 1500,
+    maxOutputTokens: DEFAULT_OUTPUT_TOKENS,
   });
 
   return {
     model: result.model,
     summary: result.outputText,
     usage: result.usage,
+    durationMs: result.durationMs,
+    finishReason: result.finishReason,
+    isComplete: result.isComplete,
     coverage: {
       includedFiles: prompt.includedFiles,
       omittedFiles: prompt.omittedFiles,

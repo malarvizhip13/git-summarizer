@@ -1,0 +1,115 @@
+import { Link, NavLink } from "react-router-dom";
+import { useState } from "react";
+
+import { useAuth } from "../context/useAuth";
+
+const links = [
+  { label: "Home", path: "/" },
+  { label: "Features", path: "/features" },
+  { label: "About", path: "/about" },
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "History", path: "/history" },
+];
+
+function Navbar() {
+  const { user, loading, authError, signOut } = useAuth();
+  const [theme, setTheme] = useState(
+    () => document.documentElement.dataset.theme || "dark"
+  );
+  const [signOutError, setSignOutError] = useState("");
+
+  const linkStyle = ({ isActive }) =>
+    `gs-nav-link${isActive ? " is-active" : ""}`;
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = nextTheme;
+    window.localStorage.setItem("gitsummarizer-theme", nextTheme);
+    setTheme(nextTheme);
+  };
+
+  const handleSignOut = async () => {
+    setSignOutError("");
+    try {
+      await signOut();
+    } catch (error) {
+      setSignOutError(error.message || "Unable to sign out.");
+    }
+  };
+
+  return (
+    <header className="gs-site-header">
+      <nav className="gs-nav" aria-label="Main navigation">
+        <Link to="/" className="gs-brand" aria-label="GitSummarizer home">
+          <span className="gs-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 18V6l7 7 7-7v12" />
+              <path d="M5 18h14" />
+            </svg>
+          </span>
+          GitSummarizer
+        </Link>
+
+        <div className="gs-nav-links">
+          {links.map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              end={link.path === "/"}
+              className={linkStyle}
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </div>
+        <Link to="/dashboard" className="gs-nav-cta">
+          Start exploring
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M4 10h12m-5-5 5 5-5 5" />
+          </svg>
+        </Link>
+        {!loading && (
+          user ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="gs-nav-link"
+              title={`Signed in as ${user.name}`}
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link to="/login" className="gs-nav-link">
+              Sign in
+            </Link>
+          )
+        )}
+        <button
+          type="button"
+          className="gs-theme-toggle"
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+        >
+          {theme === "dark" ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15.1Z" />
+            </svg>
+          )}
+        </button>
+      </nav>
+      {(authError || signOutError) && (
+        <p role="alert" className="px-5 pb-2 text-right text-xs text-red-600">
+          {signOutError || authError}
+        </p>
+      )}
+    </header>
+  );
+}
+
+export default Navbar;

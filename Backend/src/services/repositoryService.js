@@ -11,6 +11,9 @@ const {
   analyzeGitHubRepository,
 } = require("./analysisService");
 
+const { getRepository } = require("./githubService");
+const { parseGithubRepositoryUrl } = require("../utils/githubUrl");
+
 // =========================================================
 // VALIDATION
 // =========================================================
@@ -50,6 +53,7 @@ const saveRepository = async ({
   userId,
   githubUrl,
   githubRepository,
+  isSaved = true,
 }) => {
   validateUserId(userId);
 
@@ -59,6 +63,7 @@ const saveRepository = async ({
     githubOwner: githubRepository.owner,
     githubName: githubRepository.name,
     defaultBranch: githubRepository.defaultBranch,
+    isSaved,
   });
 };
 
@@ -101,43 +106,76 @@ const getRepositoryByIdAndUserId = async ({
   return repository;
 };
 
-// =========================================================
-// REPOSITORY ANALYSIS
-// =========================================================
-
-/**
- * Analyze a saved GitHub repository and persist its result.
- */
-const analyzeRepositoryByIdAndUserId = async ({
+const saveRepositoryByIdAndUserId = async ({
   repositoryId,
   userId,
 }) => {
-  // Step 1: Verify repository ownership.
   const repository = await getRepositoryByIdAndUserId({
     repositoryId,
     userId,
   });
 
-  // Step 2: Create a running analysis record.
+  if (repository.is_saved) {
+    return repository;
+  }
+
+  const savedRepository =
+    await repositoryRepository.markRepositoryAsSaved(
+      repositoryId,
+      userId
+    );
+
+  if (!savedRepository) {
+    const error = new Error("Repository could not be saved.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return savedRepository;
+};
+
+const saveAnalysisForUser = async ({
+  analysisId,
+  userId,
+  guestUserId,
+}) => {
+  validateUserId(userId);
+  validateUserId(guestUserId);
+
+  if (!isValidUUID(analysisId)) {
+    const error = new Error("Invalid analysis ID.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return repositoryRepository.saveAnalysisForUser(
+    analysisId,
+    userId,
+    guestUserId
+  );
+};
+
+// =========================================================
+// REPOSITORY ANALYSIS
+// =========================================================
+
+const analyzeRepositoryRecord = async (repository) => {
   const analysisRecord = await analysisRepository.createAnalysis(
     repository.id
   );
 
   try {
-    // Step 3: Execute the GitHub analysis pipeline.
     const analysisResult = await analyzeGitHubRepository({
       owner: repository.github_owner,
       repository: repository.github_name,
       branch: repository.default_branch,
     });
 
-    // Step 4: Extract the AI-generated summary.
     const aiSummary =
       typeof analysisResult.aiSummary?.summary === "string"
         ? analysisResult.aiSummary.summary
         : null;
 
-    // Step 5: Persist the completed analysis.
     const completedAnalysis =
       await analysisRepository.completeAnalysis({
         analysisId: analysisRecord.id,
@@ -152,14 +190,13 @@ const analyzeRepositoryByIdAndUserId = async ({
       );
     }
 
-    // Step 6: Return the persisted analysis.
     return {
       repository,
       analysisRecord: completedAnalysis,
+      analysisId: completedAnalysis.id,
       analysis: completedAnalysis.analysis_result,
     };
   } catch (error) {
-    // Step 7: Record the failure before propagating the error.
     try {
       const failedAnalysis =
         await analysisRepository.failAnalysis({
@@ -178,6 +215,41 @@ const analyzeRepositoryByIdAndUserId = async ({
 
     throw error;
   }
+};
+
+/**
+ * Analyze a saved GitHub repository and persist its result.
+ */
+const analyzeRepositoryByIdAndUserId = async ({
+  repositoryId,
+  userId,
+}) => {
+  // Step 1: Verify repository ownership.
+  const repository = await getRepositoryByIdAndUserId({
+    repositoryId,
+    userId,
+  });
+
+  return analyzeRepositoryRecord(repository);
+};
+
+const analyzeRepositoryUrlByUserId = async ({
+  githubUrl,
+  userId,
+}) => {
+  validateUserId(userId);
+
+  const { owner, repository } =
+    parseGithubRepositoryUrl(githubUrl);
+  const githubRepository = await getRepository(owner, repository);
+  const repositoryRecord = await saveRepository({
+    userId,
+    githubUrl: githubRepository.htmlUrl,
+    githubRepository,
+    isSaved: false,
+  });
+
+  return analyzeRepositoryRecord(repositoryRecord);
 };
 
 // =========================================================
@@ -244,9 +316,12 @@ const getAnalysisById = async ({
 
 module.exports = {
   saveRepository,
+  saveRepositoryByIdAndUserId,
+  saveAnalysisForUser,
   getRepositoriesByUserId,
   getRepositoryByIdAndUserId,
   analyzeRepositoryByIdAndUserId,
+  analyzeRepositoryUrlByUserId,
   getAnalysisHistory,
   getAnalysisById,
 };

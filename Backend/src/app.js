@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 
+const env = require("./config/env");
 const apiRoutes = require("./routes");
 const notFound = require("./middleware/notFound");
 const errorHandler = require("./middleware/errorHandler");
@@ -12,16 +13,12 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: env.FRONTEND_URL,
     credentials: true,
   })
 );
 
 app.use(express.json());
-
-app.get("/api/v1/health", async (req, res) => {
-  // existing health-check implementation
-});
 
 app.use("/api/v1", apiRoutes);
 

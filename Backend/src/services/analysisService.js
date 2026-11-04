@@ -2,6 +2,10 @@
 const path = require("path");
 
 const {
+  analyzeRepositoryIntelligence,
+} = require("../analyzers/repositoryIntelligence");
+
+const {
   getRepository,
   getRepositoryTree,
   getRepositoryFilesContent,
@@ -18,6 +22,7 @@ const {
 const {
   generateRepositorySummary,
 } = require("./aiService");
+
 
 // =========================================================
 // DEFAULT CONFIGURATION
@@ -113,6 +118,7 @@ const normalizeFilePath = (filePath) => {
 
 const getDirectoryGroup = (filePath) => {
   const normalizedPath = normalizeFilePath(filePath);
+
   const directorySegments = path.posix
     .dirname(normalizedPath)
     .split("/")
@@ -122,8 +128,6 @@ const getDirectoryGroup = (filePath) => {
     return "(root)";
   }
 
-  // Use up to three directory levels to represent
-  // different modules within large repositories.
   return directorySegments.slice(0, 3).join("/");
 };
 
@@ -232,8 +236,6 @@ const selectDiverseFiles = (items, limit) => {
 
   const groups = new Map();
 
-  // Items are already sorted by priority.
-  // Preserve that order inside each directory group.
   for (const item of items) {
     const groupName = item.directoryGroup;
 
@@ -247,8 +249,6 @@ const selectDiverseFiles = (items, limit) => {
   const groupQueues = Array.from(groups.values());
   const selected = [];
 
-  // Round-robin selection gives different directory groups
-  // an opportunity before one group contributes another file.
   while (selected.length < limit) {
     let addedInThisRound = false;
 
@@ -322,7 +322,6 @@ const prioritizeFiles = (files, maxFiles = 50) => {
     );
   }
 
-  // Preserve the existing category quotas.
   const quotas = {
     source: Math.floor(safeMaxFiles * 0.65),
     configuration: Math.floor(safeMaxFiles * 0.15),
@@ -339,7 +338,6 @@ const prioritizeFiles = (files, maxFiles = 50) => {
   const selected = [];
   const selectedPaths = new Set();
 
-  // Select files from each category with directory diversity.
   for (const category of [
     "source",
     "configuration",
@@ -357,7 +355,6 @@ const prioritizeFiles = (files, maxFiles = 50) => {
     }
   }
 
-  // Fill unused slots from all remaining categories.
   if (selected.length < safeMaxFiles) {
     const remainingFiles = Object.values(categorizedFiles)
       .flat()
@@ -474,7 +471,10 @@ const analyzeGitHubRepository = async ({
   const filtered = filterRepositoryFiles(
     repositoryTree.entries
   );
-
+  console.log(
+  "[GitHub Tree Entries]",
+  JSON.stringify(repositoryTree.entries, null, 2)
+);
   // Step 4: Prioritize files across repository directories.
   const selection = prioritizeFiles(
     filtered.files,
@@ -488,9 +488,24 @@ const analyzeGitHubRepository = async ({
     selection.files,
     analysisOptions
   );
+  console.log("[Analysis Debug]", {
+  repository: repositoryMetadata.fullName,
+  treeEntries: repositoryTree.entries.length,
+  filteredFiles: filtered.files.length,
+  selectedFiles: selection.files.length,
+  retrievedFiles: retrieved.files.length,
+  retrievalFailures: retrieved.failures.length,
+  sampleSelected: selection.files.slice(0, 5).map((file) => file.path),
+  sampleRetrieved: retrieved.files.slice(0, 5).map((file) => file.path),
+});
+// Step 6: Perform static repository analysis.
+const analysis = analyzeRepository(retrieved.files);
 
-  // Step 6: Perform static repository analysis.
-  const analysis = analyzeRepository(retrieved.files);
+// Step 6.1: Analyze repository intelligence.
+const intelligence = analyzeRepositoryIntelligence({
+  files: retrieved.files,
+  analysis,
+});
 
   // Step 7: Prepare repository metadata.
   const repositoryResult = {
@@ -518,25 +533,61 @@ const analyzeGitHubRepository = async ({
   };
 
   // Step 9: Generate AI-powered repository summary.
+  // AI failure must not discard successful static analysis.
   let aiSummary = null;
 
   if (includeAiSummary) {
-    aiSummary = await generateRepositorySummary({
-      repository: repositoryResult,
-      source: sourceResult,
-      retrieval: retrievalResult,
-      analysis,
-      files: retrieved.files,
-    });
+    try {
+      aiSummary = await generateRepositorySummary({
+        repository: repositoryResult,
+        source: sourceResult,
+        retrieval: retrievalResult,
+        analysis,
+        files: retrieved.files,
+      });
+
+      aiSummary = {
+        ...aiSummary,
+        status: aiSummary.isComplete
+          ? "completed"
+          : "incomplete",
+        error: null,
+      };
+    } catch (error) {
+      const errorMessage =
+        typeof error?.message === "string" &&
+        error.message.trim()
+          ? error.message
+          : "AI summary generation failed.";
+
+      console.error(
+        "[Analysis] AI summary generation failed",
+        {
+          repository: repositoryMetadata.fullName,
+          message: errorMessage,
+        }
+      );
+
+      aiSummary = {
+        status: "failed",
+        summary: null,
+        usage: null,
+        durationMs: null,
+        finishReason: "error",
+        isComplete: false,
+        error: errorMessage,
+      };
+    }
   }
 
-  return {
-    repository: repositoryResult,
-    source: sourceResult,
-    retrieval: retrievalResult,
-    analysis,
-    aiSummary,
-  };
+return {
+  repository: repositoryResult,
+  source: sourceResult,
+  retrieval: retrievalResult,
+  analysis,
+  intelligence,
+  aiSummary,
+};
 };
 
 // =========================================================

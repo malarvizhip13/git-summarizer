@@ -1,10 +1,12 @@
 
 const path = require("path");
 
-const MAX_FILES = 16;
-const MAX_FILE_CHARACTERS = 5000;
-const MAX_TOTAL_SOURCE_CHARACTERS = 22000;
-const MAX_ANALYSIS_CHARACTERS = 8000;
+
+const MAX_FILES = 10;
+const MAX_FILE_CHARACTERS = 2000;
+const MAX_TOTAL_SOURCE_CHARACTERS = 10000;
+const MAX_ANALYSIS_CHARACTERS = 4000;
+
 
 const SYSTEM_INSTRUCTIONS = `
 You are GitSummarizer, an experienced software engineer

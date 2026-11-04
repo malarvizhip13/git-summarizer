@@ -20,6 +20,9 @@ const FRAMEWORK_DEPENDENCIES = {
 const normalizeFilePath = (filePath) =>
   filePath.replace(/\\/g, "/");
 
+const normalizeDependencyName = (name) =>
+  name.trim().toLowerCase().replace(/_/g, "-");
+
 const parsePackageJson = (content, filePath) => {
   try {
     const parsed = JSON.parse(content);
@@ -28,13 +31,16 @@ const parsePackageJson = (content, filePath) => {
       ...parsed.dependencies,
       ...parsed.devDependencies,
       ...parsed.peerDependencies,
+      ...parsed.optionalDependencies,
     };
 
     return {
       file: filePath,
       packageName: parsed.name || null,
       packageVersion: parsed.version || null,
-      dependencies: Object.keys(dependencies).sort(),
+      dependencies: Object.keys(dependencies)
+        .map(normalizeDependencyName)
+        .sort(),
       scripts: Object.keys(parsed.scripts || {}).sort(),
     };
   } catch {
@@ -53,11 +59,12 @@ const parseRequirementsTxt = (content, filePath) => {
       (line) =>
         line &&
         !line.startsWith("#") &&
-        !line.startsWith("-")
+        !line.startsWith("-") &&
+        !line.startsWith("!")
     )
     .map((line) => {
       const match = line.match(/^([A-Za-z0-9_.-]+)/);
-      return match ? match[1].toLowerCase() : null;
+      return match ? normalizeDependencyName(match[1]) : null;
     })
     .filter(Boolean);
 
@@ -67,9 +74,51 @@ const parseRequirementsTxt = (content, filePath) => {
   };
 };
 
+const parsePyprojectToml = (content, filePath) => {
+  const dependencies = new Set();
+
+  // Parse common PEP 621 dependencies:
+  // dependencies = ["fastapi", "uvicorn>=0.20"]
+  const dependencyBlock = content.match(
+    /^\s*dependencies\s*=\s*\[([\s\S]*?)\]/m
+  );
+
+  if (dependencyBlock) {
+    const matches = dependencyBlock[1].matchAll(
+      /["']([A-Za-z0-9_.-]+)(?:\[[^\]]*\])?(?:[<>=!~;][^"']*)?["']/g
+    );
+
+    for (const match of matches) {
+      dependencies.add(normalizeDependencyName(match[1]));
+    }
+  }
+
+  // Parse Poetry dependencies:
+  // [tool.poetry.dependencies]
+  // fastapi = "^0.100"
+  const poetryBlock = content.match(
+    /^\s*\[tool\.poetry\.dependencies\]\s*([\s\S]*?)(?=^\s*\[|$)/m
+  );
+
+  if (poetryBlock) {
+    for (const line of poetryBlock[1].split(/\r?\n/)) {
+      const match = line.match(/^\s*([A-Za-z0-9_.-]+)\s*=/);
+
+      if (match && match[1].toLowerCase() !== "python") {
+        dependencies.add(normalizeDependencyName(match[1]));
+      }
+    }
+  }
+
+  return {
+    file: filePath,
+    dependencies: [...dependencies].sort(),
+  };
+};
+
 const detectFrameworks = (dependencyNames) => {
   const dependencySet = new Set(
-    dependencyNames.map((name) => name.toLowerCase())
+    dependencyNames.map(normalizeDependencyName)
   );
 
   const frameworks = [];
@@ -79,7 +128,7 @@ const detectFrameworks = (dependencyNames) => {
   )) {
     if (
       dependencies.some((dependency) =>
-        dependencySet.has(dependency.toLowerCase())
+        dependencySet.has(normalizeDependencyName(dependency))
       )
     ) {
       frameworks.push(framework);
@@ -115,6 +164,8 @@ const analyzeConfigurations = (files) => {
       result = parsePackageJson(file.content, normalizedPath);
     } else if (fileName === "requirements.txt") {
       result = parseRequirementsTxt(file.content, normalizedPath);
+    } else if (fileName === "pyproject.toml") {
+      result = parsePyprojectToml(file.content, normalizedPath);
     }
 
     if (!result) {
@@ -123,7 +174,7 @@ const analyzeConfigurations = (files) => {
 
     if (Array.isArray(result.dependencies)) {
       result.dependencies.forEach((dependency) =>
-        allDependencies.add(dependency)
+        allDependencies.add(normalizeDependencyName(dependency))
       );
     }
 
@@ -144,5 +195,6 @@ module.exports = {
   analyzeConfigurations,
   parsePackageJson,
   parseRequirementsTxt,
+  parsePyprojectToml,
   detectFrameworks,
 };

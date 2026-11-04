@@ -7,8 +7,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "db:create-migration": "node-pg-migrate create",
-    "db:migrate": "node-pg-migrate up",
-    "db:rollback": "node-pg-migrate down"
+    "db:migrate": "node scripts/runMigrations.js up",
+    "db:rollback": "node scripts/runMigrations.js down"
   },
   "keywords": [
     "github",
@@ -26,7 +26,8 @@
     "node-pg-migrate": "^9.0.0",
     "octokit": "^5.0.5",
     "openai": "^7.47.0",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "undici": "^8.12.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
