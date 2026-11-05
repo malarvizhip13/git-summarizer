@@ -21,6 +21,7 @@ if (direction !== "up" && direction !== "down") {
       database: env.DB_NAME,
       user: env.DB_MIGRATION_USER || env.DB_USER,
       password: env.DB_MIGRATION_PASSWORD || env.DB_PASSWORD,
+      ssl: env.DB_SSL,
     },
     dryRun: process.argv.includes("--dry-run"),
   })

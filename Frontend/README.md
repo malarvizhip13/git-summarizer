@@ -1,173 +1,167 @@
+﻿# GitSummarizer
 
-# GitSummarizer
-
-**AI-Powered GitHub Repository Analysis Platform**
-
-GitSummarizer is a full-stack application that analyzes GitHub repositories and generates structured insights about their codebase. It combines repository metadata, source-code analysis, file retrieval, and AI-generated summaries to help developers understand unfamiliar projects more efficiently.
+GitSummarizer is a full-stack project for understanding unfamiliar GitHub repositories faster. It combines GitHub metadata, repository file inspection, language and framework detection, and AI-generated summaries to help developers quickly evaluate a codebase before they dive in.
 
 ## Overview
 
-Understanding a new GitHub repository can be time-consuming, especially when it contains many files, dependencies, and different technologies.
+When you open a new repository, the biggest challenge is usually not understanding the business logic — it's figuring out the project structure, stack, and conventions. GitSummarizer makes that easier by:
 
-GitSummarizer simplifies this process by retrieving repository information, analyzing selected source files, identifying programming languages and technologies, and generating an AI-powered explanation of the project.
-
-The application also stores analysis results in PostgreSQL, allowing users to revisit previously completed analyses through analysis history and results pages.
+- fetching repository metadata from GitHub
+- analyzing the selected codebase and file structure
+- identifying languages, frameworks, and technologies
+- generating a concise AI summary of what the project does
+- persisting results so users can revisit and compare analyses later
 
 ## Features
 
-- **GitHub Repository Analysis** – Analyze public GitHub repositories using their repository URLs.
-- **Repository Metadata Retrieval** – Retrieve repository information, default branch, and source details.
-- **Source File Retrieval** – Select and retrieve repository files for analysis.
-- **Static Analysis** – Identify programming languages, frameworks, and technologies.
-- **AI-Powered Repository Summary** – Generate an AI explanation of repository functionality and implementation.
-- **Analysis Persistence** – Store completed analysis results in PostgreSQL.
-- **Analysis History** – Access previous repository analyses.
-- **Repository Dashboard** – Manage saved repositories and initiate analyses.
-- **Detailed Results Page** – View AI summaries, language statistics, technologies, and retrieval details.
-- **JSON Export** – Download analysis results as JSON.
-- **Print / Save PDF** – Export analysis reports using browser print functionality.
-- **Repository Saving** – Save analyzed repositories to the dashboard.
-- **GitHub Sign-In** – Analyze public repositories without an account, then sign in or create an account when saving an analysis.
+- GitHub repository URL analysis
+- Repository metadata retrieval
+- Source file selection and retrieval
+- Static analysis for languages and technologies
+- AI-powered repository summary generation
+- Saved repositories and dashboard workflow
+- Analysis history and results pages
+- Google OAuth sign-in for saved analyses
+- JSON export of analysis results
+- PDF-style export via browser print
 
-## Technology Stack
+## Tech Stack
 
 ### Frontend
-- React
+- React 19
 - Vite
-- Tailwind CSS
-- React Router
+- Tailwind CSS v4
+- React Router DOM
 - React Markdown
-- JavaScript
 
 ### Backend
 - Node.js
 - Express.js
 - PostgreSQL
 - pg
-- dotenv
-- Helmet
-- CORS
-
-### Integrations
-- GitHub REST API
-- AI-powered repository summarization
+- Octokit
+- OpenAI-compatible AI integration
+- Google OAuth
 
 ## Architecture
 
 ```text
-                  ┌──────────────────────┐
-                  │      Developer      │
-                  └──────────┬───────────┘
-                             │
-                             ▼
-                  ┌──────────────────────┐
-                  │   React Frontend    │
-                  │   Vite Application  │
-                  └──────────┬───────────┘
-                             │ REST API
-                             ▼
-                  ┌──────────────────────┐
-                  │   Express Backend   │
-                  │   API Controllers   │
-                  │   Service Layer     │
-                  └──────┬────────┬──────┘
-                         │        │
-             ┌───────────┘        └────────────┐
-             ▼                                 ▼
-   ┌──────────────────┐              ┌──────────────────┐
-   │  GitHub REST API│              │   AI Provider   │
-   │ Repository Data │              │ AI Summarization │
-   │ Source Files    │              └──────────────────┘
-   └──────────────────┘
-                         │
-                         ▼
-                ┌──────────────────────┐
-                │    PostgreSQL       │
-                │ Repositories        │
-                │ Analyses            │
-                │ Analysis Results    │
-                └──────────────────────┘
+Developer
+   |
+   v
+Frontend (React + Vite)
+   |
+   | REST API
+   v
+Backend (Express + Node.js)
+   |\
+   | \__ GitHub API
+   | \__ AI provider / Ollama
+   |
+   v
+PostgreSQL
+   |
+   +--> repositories
+   +--> analyses
+   +--> users / auth sessions
 ```
 
-## Project Structure
+## Repository Structure
 
 ```text
 GitSummarizer/
-│
 ├── Backend/
 │   ├── src/
 │   │   ├── config/
 │   │   ├── controllers/
+│   │   ├── middleware/
 │   │   ├── repositories/
 │   │   ├── routes/
 │   │   ├── services/
 │   │   ├── utils/
 │   │   └── server.js
 │   ├── migrations/
+│   ├── scripts/
 │   ├── package.json
 │   └── .env.example
-│
 ├── Frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── App.jsx
-│   │   └── main.jsx
+│   ├── public/
 │   ├── package.json
-│   └── .env.example
-│
+│   ├── vite.config.js
+│   └── index.html
 ├── .gitignore
 └── README.md
 ```
 
-## Analysis Workflow
+## Typical Workflow
 
-1. The user submits a GitHub repository URL.
-2. The backend validates the repository URL.
-3. Repository metadata is retrieved from GitHub.
-4. The repository is stored or updated in PostgreSQL.
-5. An analysis record is created.
-6. Source files are selected and retrieved.
-7. Static analysis identifies languages and technologies.
-8. AI generates a repository summary.
-9. Analysis results and metadata are persisted.
-10. The frontend displays the completed analysis to the visitor.
-11. When a visitor saves it, Google sign-in creates or opens their account and the completed analysis is added to their private dashboard and history.
-12. Signed-in users can revisit analysis history or export results.
+1. User submits a GitHub repository URL.
+2. The backend validates and fetches metadata from GitHub.
+3. The repository is stored or updated in PostgreSQL.
+4. An analysis record is created.
+5. Files are selected and retrieved for inspection.
+6. Static analysis identifies technologies and stack details.
+7. AI generates a summary of the repository.
+8. Results are stored and displayed in the frontend.
+9. Signed-in users can revisit past analyses from their dashboard.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js
+- Node.js 18+
 - npm
 - PostgreSQL
 - Git
-- GitHub account
-- AI provider API credentials
+- GitHub access token
+- AI provider connection (OpenAI-compatible API or local Ollama instance)
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/GitSummarizer.git
+git clone https://github.com/your-username/GitSummarizer.git
 cd GitSummarizer
 ```
 
-### 2. Setup Backend
+### 2. Set Up the Backend
 
 ```bash
 cd Backend
 npm install
 ```
 
-Create a `.env` file inside `Backend/` using `.env.example` as a reference.
+Create a `.env` file in `Backend/` based on the app's required configuration. At minimum, set values for PostgreSQL, GitHub, and OAuth settings.
 
-Configure PostgreSQL and the required API credentials.
+Example configuration:
 
-Run database migrations from `Backend/` with `npm run db:migrate`.
+```env
+NODE_ENV=development
+PORT=5000
 
-Create a Google OAuth client in Google Cloud Console. Add `http://localhost:5000/api/v1/auth/google/callback` as an authorized redirect URI. Set its client ID and secret in `Backend/.env` as `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`. Set `GOOGLE_OAUTH_CALLBACK_URL` and `FRONTEND_URL` to the matching URLs. `DEV_USER_ID` must identify an existing user row; it is used only to temporarily store analyses made before sign-in.
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=gitsummarizer
+DB_USER=postgres
+DB_PASSWORD=your-password
+
+GITHUB_TOKEN=your_github_token
+OLLAMA_BASE_URL=http://localhost:11434/v1
+OLLAMA_MODEL=qwen2.5-coder:7b
+OLLAMA_TIMEOUT=300000
+
+DEV_USER_ID=your-existing-user-id
+GOOGLE_OAUTH_CLIENT_ID=your_google_client_id
+GOOGLE_OAUTH_CLIENT_SECRET=your_google_client_secret
+GOOGLE_OAUTH_CALLBACK_URL=http://localhost:5000/api/v1/auth/google/callback
+FRONTEND_URL=http://localhost:5173
+```
+
+Create the database tables and run migrations:
+
+```bash
+npm run db:migrate
+```
 
 Start the backend:
 
@@ -175,24 +169,22 @@ Start the backend:
 npm run dev
 ```
 
-Backend:
+The API will be available at:
 
 ```text
 http://localhost:5000
 ```
 
-### 3. Setup Frontend
+### 3. Set Up the Frontend
 
-Open another terminal:
+Open a second terminal and run:
 
 ```bash
 cd Frontend
 npm install
 ```
 
-Create a `.env` file inside `Frontend/`.
-
-Configure the backend API URL:
+Create a `.env` file in `Frontend/`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api/v1
@@ -204,113 +196,62 @@ Start the frontend:
 npm run dev
 ```
 
-Frontend:
+The app will be available at:
 
 ```text
 http://localhost:5173
 ```
 
-## Environment Variables
+## API Highlights
 
-### Backend
-
-Use the following variables in `Backend/.env`:
-
-```env
-PORT=5000
-FRONTEND_URL=http://localhost:5173
-
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/gitsummarizer
-
-GITHUB_TOKEN=your_github_token
-AI_API_KEY=your_ai_provider_api_key
-GOOGLE_OAUTH_CLIENT_ID=your_google_oauth_client_id
-GOOGLE_OAUTH_CLIENT_SECRET=your_google_oauth_client_secret
-GOOGLE_OAUTH_CALLBACK_URL=http://localhost:5000/api/v1/auth/google/callback
-DEV_USER_ID=your-existing-guest-user-uuid
-```
-
-> Environment variable names must match the actual configuration used by your backend. Never commit real credentials or API tokens.
-
-## API Endpoints
-
-Base URL:
-
-```text
-http://localhost:5000/api/v1
-```
+The backend exposes the API under `http://localhost:5000/api/v1`.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/health` | Check API health |
-| GET | `/auth/google` | Start Google sign-in |
-| GET | `/auth/me` | Check the current sign-in |
-| POST | `/auth/logout` | Sign out |
-| POST | `/repositories` | Create or register repository |
-| POST | `/repositories/save-analysis` | Save a guest analysis to the signed-in user's account |
-| GET | `/repositories` | Retrieve saved repositories |
-| GET | `/repositories/:repositoryId` | Retrieve repository details |
-| POST | `/repositories/:repositoryId/analyze` | Analyze saved repository |
-| GET | `/repositories/:repositoryId/analyses` | Retrieve repository analysis history |
-| GET | `/analyses/:analysisId` | Retrieve a specific analysis |
-
-Additional repository saving and analysis endpoints may be available depending on the current backend routes.
+| GET | `/health` | Check whether the API and database are healthy |
+| GET | `/auth/google` | Start Google OAuth sign-in |
+| GET | `/auth/me` | Get the active signed-in user |
+| POST | `/auth/logout` | Sign out the current user |
+| POST | `/analyses` | Analyze a repository URL |
+| POST | `/repositories` | Create or register a repository |
+| GET | `/repositories` | Get saved repositories for the authenticated user |
+| GET | `/repositories/:id` | Get a repository by ID |
+| PATCH | `/repositories/:id/save` | Save an existing repository to the user's dashboard |
+| POST | `/repositories/:id/analyze` | Trigger analysis for a repository |
+| GET | `/repositories/:id/analyses` | List repository analyses |
+| GET | `/analyses/:analysisId` | Retrieve one saved analysis |
 
 ## Database
 
-GitSummarizer uses PostgreSQL to persist repository information and analysis results.
+GitSummarizer uses PostgreSQL to persist:
 
-### Main Tables
+- user records
+- authenticated sessions
+- repository metadata
+- analysis records
+- JSON analysis output
 
-- `users` – User records.
-- `repositories` – GitHub repository metadata and saved status.
-- `analyses` – Analysis status, summaries, and persisted analysis results.
-- `auth_sessions` – Hashed, expiring sessions for signed-in accounts.
+## Security Notes
 
-Analysis results are stored using PostgreSQL JSONB for structured analysis data.
+- Keep API tokens and secret values in local `.env` files.
+- Do not expose credentials in frontend code.
+- Use HTTPS and proper CORS settings in production.
+- OAuth sessions are stored with secure cookie settings.
 
-## Security Considerations
+## Future Improvements
 
-- GitHub and AI provider API tokens are stored in backend environment variables.
-- API credentials are not intended to be exposed in frontend code.
-- `.env` files are excluded from version control.
-- Backend requests use configured CORS and security middleware.
-- OAuth sessions use HttpOnly cookies; use HTTPS in production and configure the frontend and API origins for the same site where possible.
-
-## Future Enhancements
-
-- Repository architecture visualization.
-- Advanced code dependency analysis.
-- More detailed code quality insights.
-- Improved AI analysis coverage.
-- Cloud deployment.
-- Automated testing and CI/CD integration.
+- architecture visualizations
+- deeper dependency analysis
+- richer quality and maintainability insights
+- CI/CD automation
+- cloud deployment support
 
 ## Author
 
-**Sajid**
-
-Information Technology | Software Development
+Sajid
 
 GitHub: https://github.com/thazbi
 
 ---
 
 *GitSummarizer — Understand repositories faster with AI-powered insights.*
-
-# React + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

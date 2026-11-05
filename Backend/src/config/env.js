@@ -27,6 +27,7 @@ module.exports = {
   DB_NAME: process.env.DB_NAME,
   DB_USER: process.env.DB_USER,
   DB_PASSWORD: process.env.DB_PASSWORD,
+  DB_SSL: process.env.DB_SSL === "true",
   DB_MIGRATION_USER: process.env.DB_MIGRATION_USER || null,
   DB_MIGRATION_PASSWORD: process.env.DB_MIGRATION_PASSWORD || null,
 

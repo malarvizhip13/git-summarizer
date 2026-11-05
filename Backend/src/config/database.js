@@ -7,6 +7,7 @@ const pool = new Pool({
   database: env.DB_NAME,
   user: env.DB_USER,
   password: env.DB_PASSWORD,
+  ssl: env.DB_SSL,
   DEV_USER_ID: env.DEV_USER_ID,
   max: 10,
   idleTimeoutMillis: 30000,
