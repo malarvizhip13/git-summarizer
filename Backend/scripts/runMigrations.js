@@ -15,14 +15,19 @@ if (direction !== "up" && direction !== "down") {
     dir: path.resolve(__dirname, "../migrations"),
     migrationsTable: "pgmigrations",
     schema: "public",
-    databaseUrl: {
-      host: env.DB_HOST,
-      port: env.DB_PORT,
-      database: env.DB_NAME,
-      user: env.DB_MIGRATION_USER || env.DB_USER,
-      password: env.DB_MIGRATION_PASSWORD || env.DB_PASSWORD,
-      ssl: env.DB_SSL,
-    },
+    databaseUrl: env.DATABASE_URL
+      ? {
+          connectionString: env.DATABASE_URL,
+          ssl: env.DB_SSL,
+        }
+      : {
+          host: env.DB_HOST,
+          port: env.DB_PORT,
+          database: env.DB_NAME,
+          user: env.DB_MIGRATION_USER || env.DB_USER,
+          password: env.DB_MIGRATION_PASSWORD || env.DB_PASSWORD,
+          ssl: env.DB_SSL,
+        },
     dryRun: process.argv.includes("--dry-run"),
   })
     .then((results) => {

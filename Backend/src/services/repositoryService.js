@@ -13,6 +13,7 @@ const {
 
 const { getRepository } = require("./githubService");
 const { parseGithubRepositoryUrl } = require("../utils/githubUrl");
+const env = require("../config/env");
 
 // =========================================================
 // VALIDATION
@@ -29,12 +30,12 @@ const isValidUUID = (value) => {
 };
 
 /**
- * Validate development user configuration.
+ * Validate the shared public repository owner configuration.
  */
-const validateUserId = (userId) => {
+const validatePublicUserId = (userId) => {
   if (!userId) {
     const error = new Error(
-      "Development user is not configured. Check DEV_USER_ID."
+      "The public repository owner is not configured."
     );
 
     error.statusCode = 500;
@@ -55,7 +56,8 @@ const saveRepository = async ({
   githubRepository,
   isSaved = true,
 }) => {
-  validateUserId(userId);
+  validatePublicUserId(userId);
+  await repositoryRepository.ensurePublicUser(userId);
 
   return repositoryRepository.upsertRepository({
     userId,
@@ -68,34 +70,25 @@ const saveRepository = async ({
 };
 
 /**
- * Retrieve all repositories belonging to a user.
+ * Retrieve repositories available in the public library.
  */
-const getRepositoriesByUserId = async (userId) => {
-  validateUserId(userId);
-
-  return repositoryRepository.findRepositoriesByUserId(userId);
+const getPublicRepositories = async () => {
+  return repositoryRepository.findPublicRepositories();
 };
 
 /**
- * Retrieve a single repository belonging to a user.
+ * Retrieve a repository by ID.
  */
-const getRepositoryByIdAndUserId = async ({
-  repositoryId,
-  userId,
-}) => {
-  validateUserId(userId);
-
+const getRepositoryById = async (repositoryId) => {
   if (!isValidUUID(repositoryId)) {
     const error = new Error("Invalid repository ID.");
     error.statusCode = 400;
     throw error;
   }
 
-  const repository =
-    await repositoryRepository.findRepositoryByIdAndUserId(
-      repositoryId,
-      userId
-    );
+  const repository = await repositoryRepository.findRepositoryById(
+    repositoryId
+  );
 
   if (!repository) {
     const error = new Error("Repository not found.");
@@ -106,24 +99,15 @@ const getRepositoryByIdAndUserId = async ({
   return repository;
 };
 
-const saveRepositoryByIdAndUserId = async ({
-  repositoryId,
-  userId,
-}) => {
-  const repository = await getRepositoryByIdAndUserId({
-    repositoryId,
-    userId,
-  });
+const saveRepositoryById = async (repositoryId) => {
+  const repository = await getRepositoryById(repositoryId);
 
   if (repository.is_saved) {
     return repository;
   }
 
   const savedRepository =
-    await repositoryRepository.markRepositoryAsSaved(
-      repositoryId,
-      userId
-    );
+    await repositoryRepository.markRepositoryAsSaved(repositoryId);
 
   if (!savedRepository) {
     const error = new Error("Repository could not be saved.");
@@ -132,27 +116,6 @@ const saveRepositoryByIdAndUserId = async ({
   }
 
   return savedRepository;
-};
-
-const saveAnalysisForUser = async ({
-  analysisId,
-  userId,
-  guestUserId,
-}) => {
-  validateUserId(userId);
-  validateUserId(guestUserId);
-
-  if (!isValidUUID(analysisId)) {
-    const error = new Error("Invalid analysis ID.");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  return repositoryRepository.saveAnalysisForUser(
-    analysisId,
-    userId,
-    guestUserId
-  );
 };
 
 // =========================================================
@@ -220,33 +183,21 @@ const analyzeRepositoryRecord = async (repository) => {
 /**
  * Analyze a saved GitHub repository and persist its result.
  */
-const analyzeRepositoryByIdAndUserId = async ({
-  repositoryId,
-  userId,
-}) => {
-  // Step 1: Verify repository ownership.
-  const repository = await getRepositoryByIdAndUserId({
-    repositoryId,
-    userId,
-  });
+const analyzeRepositoryById = async (repositoryId) => {
+  const repository = await getRepositoryById(repositoryId);
 
   return analyzeRepositoryRecord(repository);
 };
 
-const analyzeRepositoryUrlByUserId = async ({
-  githubUrl,
-  userId,
-}) => {
-  validateUserId(userId);
-
+const analyzeRepositoryUrl = async (githubUrl) => {
   const { owner, repository } =
     parseGithubRepositoryUrl(githubUrl);
   const githubRepository = await getRepository(owner, repository);
   const repositoryRecord = await saveRepository({
-    userId,
+    userId: env.PUBLIC_USER_ID,
     githubUrl: githubRepository.htmlUrl,
     githubRepository,
-    isSaved: false,
+    isSaved: true,
   });
 
   return analyzeRepositoryRecord(repositoryRecord);
@@ -259,20 +210,12 @@ const analyzeRepositoryUrlByUserId = async ({
 /**
  * Retrieve analysis history for a saved repository.
  */
-const getAnalysisHistory = async ({
-  repositoryId,
-  userId,
-}) => {
-  const repository = await getRepositoryByIdAndUserId({
-    repositoryId,
-    userId,
-  });
+const getAnalysisHistory = async (repositoryId) => {
+  const repository = await getRepositoryById(repositoryId);
 
-  const analyses =
-    await analysisRepository.findAnalysesByRepositoryAndUser(
-      repository.id,
-      userId
-    );
+  const analyses = await analysisRepository.findAnalysesByRepository(
+    repository.id
+  );
 
   return {
     repository,
@@ -283,23 +226,14 @@ const getAnalysisHistory = async ({
 /**
  * Retrieve one persisted analysis.
  */
-const getAnalysisById = async ({
-  analysisId,
-  userId,
-}) => {
-  validateUserId(userId);
-
+const getAnalysisById = async (analysisId) => {
   if (!isValidUUID(analysisId)) {
     const error = new Error("Invalid analysis ID.");
     error.statusCode = 400;
     throw error;
   }
 
-  const analysis =
-    await analysisRepository.findAnalysisByIdAndUser(
-      analysisId,
-      userId
-    );
+  const analysis = await analysisRepository.findAnalysisById(analysisId);
 
   if (!analysis) {
     const error = new Error("Analysis not found.");
@@ -316,12 +250,11 @@ const getAnalysisById = async ({
 
 module.exports = {
   saveRepository,
-  saveRepositoryByIdAndUserId,
-  saveAnalysisForUser,
-  getRepositoriesByUserId,
-  getRepositoryByIdAndUserId,
-  analyzeRepositoryByIdAndUserId,
-  analyzeRepositoryUrlByUserId,
+  saveRepositoryById,
+  getPublicRepositories,
+  getRepositoryById,
+  analyzeRepositoryById,
+  analyzeRepositoryUrl,
   getAnalysisHistory,
   getAnalysisById,
 };

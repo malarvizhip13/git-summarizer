@@ -74,7 +74,7 @@ function GuestAnalysis() {
     <AnalysisLoader
       repositoryUrl={location.state?.repoUrl}
       description="We’re mapping the project structure and preparing your report. This can take a little while for larger repositories."
-      footnote="You can save the completed analysis to your account afterward"
+      footnote="Your report will be available in the public analysis history."
     />
   );
 }

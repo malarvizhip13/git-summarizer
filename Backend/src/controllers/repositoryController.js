@@ -9,14 +9,13 @@ const {
 
 const {
   saveRepository,
-  getRepositoriesByUserId,
-  getRepositoryByIdAndUserId,
-  saveRepositoryByIdAndUserId,
-  analyzeRepositoryByIdAndUserId,
-  analyzeRepositoryUrlByUserId,
+  getPublicRepositories,
+  getRepositoryById: getRepositoryByIdService,
+  saveRepositoryById,
+  analyzeRepositoryById: analyzeRepositoryByIdService,
+  analyzeRepositoryUrl: analyzeRepositoryUrlService,
   getAnalysisHistory,
-  getAnalysisById,
-  saveAnalysisForUser,
+  getAnalysisById: getAnalysisByIdService,
 } = require("../services/repositoryService");
 
 const env = require("../config/env");
@@ -41,7 +40,7 @@ const createRepository = async (req, res, next) => {
     );
 
     const savedRepository = await saveRepository({
-      userId: req.user.id,
+      userId: env.PUBLIC_USER_ID,
       githubUrl,
       githubRepository,
       isSaved: true,
@@ -61,36 +60,14 @@ const createRepository = async (req, res, next) => {
   }
 };
 
-const saveRepositoryForUser = async (req, res, next) => {
+const saveRepositoryController = async (req, res, next) => {
   try {
-    const repository = await saveRepositoryByIdAndUserId({
-      repositoryId: req.params.id,
-      userId: req.user.id,
-    });
+    const repository = await saveRepositoryById(req.params.id);
 
     return res.status(200).json({
       success: true,
       message: "Repository saved successfully",
       repository,
-    });
-  } catch (error) {
-    return next(error);
-  }
-};
-
-const saveAnalysis = async (req, res, next) => {
-  try {
-    const result = await saveAnalysisForUser({
-      analysisId: req.body?.analysisId,
-      userId: req.user.id,
-      guestUserId: env.DEV_USER_ID,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Analysis saved to your account.",
-      repository: result.repository,
-      analysisId: result.analysisId,
     });
   } catch (error) {
     return next(error);
@@ -106,9 +83,7 @@ const saveAnalysis = async (req, res, next) => {
  */
 const getRepositories = async (req, res, next) => {
   try {
-    const repositories = await getRepositoriesByUserId(
-      req.user.id
-    );
+    const repositories = await getPublicRepositories();
 
     return res.status(200).json({
       success: true,
@@ -130,10 +105,7 @@ const getRepositories = async (req, res, next) => {
  */
 const getRepositoryById = async (req, res, next) => {
   try {
-    const repository = await getRepositoryByIdAndUserId({
-      repositoryId: req.params.id,
-      userId: req.user?.id || env.DEV_USER_ID,
-    });
+    const repository = await getRepositoryByIdService(req.params.id);
 
     return res.status(200).json({
       success: true,
@@ -141,23 +113,6 @@ const getRepositoryById = async (req, res, next) => {
       repository,
     });
   } catch (error) {
-    if (req.user && error.statusCode === 404 && env.DEV_USER_ID) {
-      try {
-        const repository = await getRepositoryByIdAndUserId({
-          repositoryId: req.params.id,
-          userId: env.DEV_USER_ID,
-        });
-
-        return res.status(200).json({
-          success: true,
-          message: "Repository retrieved successfully",
-          repository,
-        });
-      } catch (fallbackError) {
-        return next(fallbackError);
-      }
-    }
-
     return next(error);
   }
 };
@@ -171,10 +126,7 @@ const getRepositoryById = async (req, res, next) => {
  */
 const analyzeRepository = async (req, res, next) => {
   try {
-    const result = await analyzeRepositoryByIdAndUserId({
-      repositoryId: req.params.id,
-      userId: req.user.id,
-    });
+    const result = await analyzeRepositoryByIdService(req.params.id);
 
     return res.status(200).json({
       success: true,
@@ -193,10 +145,9 @@ const analyzeRepository = async (req, res, next) => {
  */
 const analyzeRepositoryUrl = async (req, res, next) => {
   try {
-    const result = await analyzeRepositoryUrlByUserId({
-      githubUrl: req.body?.githubUrl,
-      userId: env.DEV_USER_ID,
-    });
+    const result = await analyzeRepositoryUrlService(
+      req.body?.githubUrl
+    );
 
     return res.status(200).json({
       success: true,
@@ -219,10 +170,7 @@ const analyzeRepositoryUrl = async (req, res, next) => {
  */
 const getRepositoryAnalysisHistory = async (req, res, next) => {
   try {
-    const result = await getAnalysisHistory({
-      repositoryId: req.params.id,
-      userId: req.user.id,
-    });
+    const result = await getAnalysisHistory(req.params.id);
 
     return res.status(200).json({
       success: true,
@@ -244,32 +192,15 @@ const getRepositoryAnalysisHistory = async (req, res, next) => {
  */
 const getAnalysisByIdController = async (req, res, next) => {
   try {
-    const analysis = await getAnalysisById({
-      analysisId: req.params.analysisId,
-      userId: req.user?.id || env.DEV_USER_ID,
-    });
+    const analysis = await getAnalysisByIdService(
+      req.params.analysisId
+    );
 
     return res.status(200).json({
       success: true,
       analysis,
     });
   } catch (error) {
-    if (req.user && error.statusCode === 404 && env.DEV_USER_ID) {
-      try {
-        const analysis = await getAnalysisById({
-          analysisId: req.params.analysisId,
-          userId: env.DEV_USER_ID,
-        });
-
-        return res.status(200).json({
-          success: true,
-          analysis,
-        });
-      } catch (fallbackError) {
-        return next(fallbackError);
-      }
-    }
-
     return next(error);
   }
 };
@@ -282,8 +213,7 @@ module.exports = {
   createRepository,
   getRepositories,
   getRepositoryById,
-  saveRepository: saveRepositoryForUser,
-  saveAnalysis,
+  saveRepository: saveRepositoryController,
   analyzeRepository,
   analyzeRepositoryUrl,
   getAnalysisHistory: getRepositoryAnalysisHistory,

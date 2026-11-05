@@ -1,7 +1,16 @@
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+const defaultApiBaseUrl = import.meta.env.DEV
+  ? "http://localhost:5000/api/v1"
+  : "";
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:5000/api/v1"
+  configuredApiBaseUrl || defaultApiBaseUrl
 ).replace(/\/+$/, "");
+
+if (!API_BASE_URL) {
+  throw new Error(
+    "VITE_API_BASE_URL must be set to the deployed backend API URL."
+  );
+}
 
 /**
  * Centralized API request handler.
@@ -23,7 +32,6 @@ const apiRequest = async (endpoint, options = {}) => {
   try {
     response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...requestOptions,
-      credentials: "include",
       headers: {
         Accept: "application/json",
         ...headers,
@@ -69,15 +77,6 @@ const apiRequest = async (endpoint, options = {}) => {
 
 export const checkApiHealth = () => {
   return apiRequest("/health");
-};
-
-export const getCurrentUser = () => apiRequest("/auth/me");
-
-export const logout = () =>
-  apiRequest("/auth/logout", { method: "POST" });
-
-export const startGoogleLogin = () => {
-  window.location.assign(`${API_BASE_URL}/auth/google`);
 };
 
 // =========================================================
@@ -131,15 +130,6 @@ export const saveRepositoryById = (repositoryId) => {
     }
   );
 };
-
-export const saveAnalysisToAccount = (analysisId) =>
-  apiRequest("/repositories/save-analysis", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ analysisId }),
-  });
 
 /**
  * Retrieve all saved repositories.

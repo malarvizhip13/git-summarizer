@@ -191,7 +191,7 @@ function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="mt-2 text-gray-600">
-            Your saved repositories, ready to explore.
+            Public repositories and analyses, ready to explore.
           </p>
         </div>
         <button

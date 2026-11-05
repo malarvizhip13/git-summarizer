@@ -116,12 +116,9 @@ const failAnalysis = async ({
 };
 
 /**
- * Retrieve analysis history for a repository owned by a user.
+ * Retrieve analysis history for a repository.
  */
-const findAnalysesByRepositoryAndUser = async (
-  repositoryId,
-  userId
-) => {
+const findAnalysesByRepository = async (repositoryId) => {
   const sql = `
     SELECT
       a.id,
@@ -137,25 +134,18 @@ const findAnalysesByRepositoryAndUser = async (
     INNER JOIN repositories r
       ON r.id = a.repository_id
     WHERE a.repository_id = $1
-      AND r.user_id = $2
     ORDER BY a.created_at DESC;
   `;
 
-  const result = await pool.query(sql, [
-    repositoryId,
-    userId,
-  ]);
+  const result = await pool.query(sql, [repositoryId]);
 
   return result.rows;
 };
 
 /**
- * Retrieve one analysis belonging to a user.
+ * Retrieve one analysis by ID.
  */
-const findAnalysisByIdAndUser = async (
-  analysisId,
-  userId
-) => {
+const findAnalysisById = async (analysisId) => {
   const sql = `
     SELECT
       a.id,
@@ -172,14 +162,10 @@ const findAnalysisByIdAndUser = async (
     INNER JOIN repositories r
       ON r.id = a.repository_id
     WHERE a.id = $1
-      AND r.user_id = $2
     LIMIT 1;
   `;
 
-  const result = await pool.query(sql, [
-    analysisId,
-    userId,
-  ]);
+  const result = await pool.query(sql, [analysisId]);
 
   return result.rows[0] || null;
 };
@@ -188,6 +174,6 @@ module.exports = {
   createAnalysis,
   completeAnalysis,
   failAnalysis,
-  findAnalysesByRepositoryAndUser,
-  findAnalysisByIdAndUser,
+  findAnalysesByRepository,
+  findAnalysisById,
 };

@@ -21,7 +21,7 @@ When you open a new repository, the biggest challenge is usually not understandi
 - AI-powered repository summary generation
 - Saved repositories and dashboard workflow
 - Analysis history and results pages
-- Google OAuth sign-in for saved analyses
+- Public repository analysis and history without sign-in
 - JSON export of analysis results
 - PDF-style export via browser print
 
@@ -40,8 +40,7 @@ When you open a new repository, the biggest challenge is usually not understandi
 - PostgreSQL
 - pg
 - Octokit
-- OpenAI-compatible AI integration
-- Google OAuth
+- NVIDIA NIM API integration
 
 ## Architecture
 
@@ -56,14 +55,13 @@ Frontend (React + Vite)
 Backend (Express + Node.js)
    |\
    | \__ GitHub API
-   | \__ AI provider / Ollama
+   | \__ NVIDIA NIM
    |
    v
 PostgreSQL
    |
    +--> repositories
    +--> analyses
-   +--> users / auth sessions
 ```
 
 ## Repository Structure
@@ -104,18 +102,18 @@ GitSummarizer/
 6. Static analysis identifies technologies and stack details.
 7. AI generates a summary of the repository.
 8. Results are stored and displayed in the frontend.
-9. Signed-in users can revisit past analyses from their dashboard.
+9. Anyone can revisit past analyses from the public history.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.19+ or 22.12+
 - npm
 - PostgreSQL
 - Git
-- GitHub access token
-- AI provider connection (OpenAI-compatible API or local Ollama instance)
+- NVIDIA NIM API key
+- Optional GitHub access token (recommended to increase API rate limits)
 
 ### 1. Clone the Repository
 
@@ -131,7 +129,7 @@ cd Backend
 npm install
 ```
 
-Create a `.env` file in `Backend/` based on the app's required configuration. At minimum, set values for PostgreSQL, GitHub, and OAuth settings.
+Create a `.env` file in `Backend/` based on the app's required configuration. At minimum, set values for PostgreSQL, GitHub, and the AI provider.
 
 Example configuration:
 
@@ -144,16 +142,12 @@ DB_PORT=5432
 DB_NAME=gitsummarizer
 DB_USER=postgres
 DB_PASSWORD=your-password
+DB_SSL=false
 
-GITHUB_TOKEN=your_github_token
-OLLAMA_BASE_URL=http://localhost:11434/v1
-OLLAMA_MODEL=qwen2.5-coder:7b
-OLLAMA_TIMEOUT=300000
+GITHUB_TOKEN=
+NVIDIA_API_KEY=your_nvidia_api_key
+NVIDIA_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
 
-DEV_USER_ID=your-existing-user-id
-GOOGLE_OAUTH_CLIENT_ID=your_google_client_id
-GOOGLE_OAUTH_CLIENT_SECRET=your_google_client_secret
-GOOGLE_OAUTH_CALLBACK_URL=http://localhost:5000/api/v1/auth/google/callback
 FRONTEND_URL=http://localhost:5173
 ```
 
@@ -168,6 +162,10 @@ Start the backend:
 ```bash
 npm run dev
 ```
+
+Set `NVIDIA_API_KEY` before using AI summaries. Set `GITHUB_TOKEN` to avoid
+the lower unauthenticated GitHub API rate limit. `DB_SSL=true` is commonly
+required by hosted PostgreSQL providers.
 
 The API will be available at:
 
@@ -202,6 +200,46 @@ The app will be available at:
 http://localhost:5173
 ```
 
+## Deployment
+
+Deploy the backend and frontend as separate services, and provision a
+PostgreSQL database. Use Node.js 20.19+ or 22.12+ for both builds.
+
+### Backend service
+
+- Root directory: `Backend`
+- Install command: `npm ci`
+- Build command: not required
+- Start command: `npm start`
+- Health check path: `/api/v1/health`
+- Release/pre-deploy command: `npm run db:migrate`
+
+Configure these backend environment variables in the hosting provider:
+
+- `NODE_ENV=production`
+- `DATABASE_URL` using Render PostgreSQL's internal database URL, or the
+  individual `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`
+  values
+- `DB_SSL=true` if required by the database provider
+- `NVIDIA_API_KEY`
+- `FRONTEND_URL` set to the deployed frontend origin (scheme and host only)
+- `PORT` if the platform does not provide it automatically
+- `GITHUB_TOKEN` optionally, to increase GitHub API rate limits
+
+### Frontend static site
+
+- Root directory: `Frontend`
+- Install command: `npm ci`
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Set `VITE_API_BASE_URL` to the backend URL ending in `/api/v1`
+- Configure the static host to rewrite unknown paths to `index.html` for
+  React Router routes.
+
+Run database migrations as a release step before serving requests. Never put
+backend secrets such as `NVIDIA_API_KEY` or PostgreSQL credentials in frontend
+environment variables.
+
 ## API Highlights
 
 The backend exposes the API under `http://localhost:5000/api/v1`.
@@ -209,14 +247,11 @@ The backend exposes the API under `http://localhost:5000/api/v1`.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/health` | Check whether the API and database are healthy |
-| GET | `/auth/google` | Start Google OAuth sign-in |
-| GET | `/auth/me` | Get the active signed-in user |
-| POST | `/auth/logout` | Sign out the current user |
 | POST | `/analyses` | Analyze a repository URL |
 | POST | `/repositories` | Create or register a repository |
-| GET | `/repositories` | Get saved repositories for the authenticated user |
+| GET | `/repositories` | Get public repositories and analysis history |
 | GET | `/repositories/:id` | Get a repository by ID |
-| PATCH | `/repositories/:id/save` | Save an existing repository to the user's dashboard |
+| PATCH | `/repositories/:id/save` | Add a repository to the public repository list |
 | POST | `/repositories/:id/analyze` | Trigger analysis for a repository |
 | GET | `/repositories/:id/analyses` | List repository analyses |
 | GET | `/analyses/:analysisId` | Retrieve one saved analysis |
@@ -225,8 +260,7 @@ The backend exposes the API under `http://localhost:5000/api/v1`.
 
 GitSummarizer uses PostgreSQL to persist:
 
-- user records
-- authenticated sessions
+- a shared public repository owner
 - repository metadata
 - analysis records
 - JSON analysis output
@@ -236,7 +270,6 @@ GitSummarizer uses PostgreSQL to persist:
 - Keep API tokens and secret values in local `.env` files.
 - Do not expose credentials in frontend code.
 - Use HTTPS and proper CORS settings in production.
-- OAuth sessions are stored with secure cookie settings.
 
 ## Future Improvements
 

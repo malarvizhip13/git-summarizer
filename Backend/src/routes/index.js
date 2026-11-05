@@ -2,20 +2,9 @@
 const express = require("express");
 
 const { query } = require("../config/database");
-const authController = require("../controllers/authController");
-const optionalAuth = require("../middleware/optionalAuth");
-const requireAuth = require("../middleware/requireAuth");
 const repositoryController = require("../controllers/repositoryController");
 
 const router = express.Router();
-
-router.get("/auth/google", authController.startGoogleOAuth);
-router.get(
-  "/auth/google/callback",
-  authController.completeGoogleOAuth
-);
-router.get("/auth/me", authController.getCurrentUser);
-router.post("/auth/logout", authController.logout);
 
 /**
  * GET /api/v1/health
@@ -40,11 +29,7 @@ router.get("/health", async (req, res, next) => {
 /**
  * POST /api/v1/repositories
  */
-router.post(
-  "/repositories",
-  requireAuth,
-  repositoryController.createRepository
-);
+router.post("/repositories", repositoryController.createRepository);
 
 /**
  * POST /api/v1/analyses
@@ -57,53 +42,29 @@ router.post(
 /**
  * GET /api/v1/repositories
  */
-router.get(
-  "/repositories",
-  requireAuth,
-  repositoryController.getRepositories
-);
-
-router.post(
-  "/repositories/save-analysis",
-  requireAuth,
-  repositoryController.saveAnalysis
-);
+router.get("/repositories", repositoryController.getRepositories);
 
 /**
  * GET /api/v1/repositories/:id
  */
-router.get(
-  "/repositories/:id",
-  optionalAuth,
-  repositoryController.getRepositoryById
-);
+router.get("/repositories/:id", repositoryController.getRepositoryById);
 
 /**
  * PATCH /api/v1/repositories/:id/save
  */
-router.patch(
-  "/repositories/:id/save",
-  requireAuth,
-  repositoryController.saveRepository
-);
+router.patch("/repositories/:id/save", repositoryController.saveRepository);
 
 /**
  * POST /api/v1/repositories/:id/analyze
  */
 router.post(
   "/repositories/:id/analyze",
-  requireAuth,
   repositoryController.analyzeRepository
 );
 router.get(
   "/repositories/:id/analyses",
-  requireAuth,
   repositoryController.getAnalysisHistory
 );
 
-router.get(
-  "/analyses/:analysisId",
-  optionalAuth,
-  repositoryController.getAnalysisById
-);
+router.get("/analyses/:analysisId", repositoryController.getAnalysisById);
 module.exports = router;

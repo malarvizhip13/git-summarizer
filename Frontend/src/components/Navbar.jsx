@@ -1,8 +1,6 @@
 import { Link, NavLink } from "react-router-dom";
 import { useState } from "react";
 
-import { useAuth } from "../context/useAuth";
-
 const links = [
   { label: "Home", path: "/" },
   { label: "Features", path: "/features" },
@@ -12,11 +10,9 @@ const links = [
 ];
 
 function Navbar() {
-  const { user, loading, authError, signOut } = useAuth();
   const [theme, setTheme] = useState(
     () => document.documentElement.dataset.theme || "dark"
   );
-  const [signOutError, setSignOutError] = useState("");
 
   const linkStyle = ({ isActive }) =>
     `gs-nav-link${isActive ? " is-active" : ""}`;
@@ -26,15 +22,6 @@ function Navbar() {
     document.documentElement.dataset.theme = nextTheme;
     window.localStorage.setItem("gitsummarizer-theme", nextTheme);
     setTheme(nextTheme);
-  };
-
-  const handleSignOut = async () => {
-    setSignOutError("");
-    try {
-      await signOut();
-    } catch (error) {
-      setSignOutError(error.message || "Unable to sign out.");
-    }
   };
 
   return (
@@ -68,22 +55,6 @@ function Navbar() {
             <path d="M4 10h12m-5-5 5 5-5 5" />
           </svg>
         </Link>
-        {!loading && (
-          user ? (
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="gs-nav-link"
-              title={`Signed in as ${user.name}`}
-            >
-              Sign out
-            </button>
-          ) : (
-            <Link to="/login" className="gs-nav-link">
-              Sign in
-            </Link>
-          )
-        )}
         <button
           type="button"
           className="gs-theme-toggle"
@@ -103,11 +74,6 @@ function Navbar() {
           )}
         </button>
       </nav>
-      {(authError || signOutError) && (
-        <p role="alert" className="px-5 pb-2 text-right text-xs text-red-600">
-          {signOutError || authError}
-        </p>
-      )}
     </header>
   );
 }

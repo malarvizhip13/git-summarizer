@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 
-import { useAuth } from "../context/useAuth";
 import {
   getAnalysisById,
   getRepositoryById,
-  saveAnalysisToAccount,
 } from "../services/api";
 
 // =========================================================
@@ -111,8 +109,6 @@ function StatusBadge({ status }) {
 
 function Results() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
   const { analysisId } = useParams();
 
   const [savedAnalysis, setSavedAnalysis] = useState(null);
@@ -120,11 +116,6 @@ function Results() {
   const [loadedAnalysisId, setLoadedAnalysisId] = useState(null);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
-  const [savingRepository, setSavingRepository] = useState(false);
-  const [saveMessage, setSaveMessage] = useState(
-    location.state?.saveMessage || ""
-  );
-  const [saveError, setSaveError] = useState("");
 
   // =======================================================
   // LOAD SAVED ANALYSIS
@@ -205,48 +196,6 @@ function Results() {
     window.print();
   };
 
-  const handleSaveRepository = async () => {
-    if (!analysisId || !savedRepository?.id || savingRepository) return;
-
-    setSaveMessage("");
-    setSaveError("");
-
-    if (!user) {
-      window.sessionStorage.setItem(
-        "gitsummarizer-pending-analysis",
-        analysisId
-      );
-      navigate("/login");
-      return;
-    }
-
-    setSavingRepository(true);
-
-    try {
-      const response = await saveAnalysisToAccount(analysisId);
-      if (!response.repository?.is_saved) {
-        throw new Error("The repository was not marked as saved.");
-      }
-      if (!response.analysisId) {
-        throw new Error("The saved analysis ID was not returned.");
-      }
-
-      setSavedRepository(response.repository);
-      setSaveMessage("Analysis saved to your dashboard.");
-      navigate(
-        `/results/${encodeURIComponent(response.analysisId)}`,
-        {
-          replace: true,
-          state: { saveMessage: "Analysis saved to your dashboard." },
-        }
-      );
-    } catch (requestError) {
-      setSaveError(requestError.message || "Unable to save analysis.");
-    } finally {
-      setSavingRepository(false);
-    }
-  };
-
   // =======================================================
   // LOADING
   // =======================================================
@@ -317,14 +266,6 @@ function Results() {
   const result = analysisId
     ? savedAnalysis?.analysis_result
     : analysisResponse?.analysis;
-  const canSaveAnalysis = Boolean(
-    savedRepository &&
-      (!user ||
-        String(savedRepository.user_id).toLowerCase() !==
-          String(user.id).toLowerCase() ||
-        !savedRepository.is_saved)
-  );
-
   if (!result) {
     return (
       <section className="mx-auto max-w-4xl px-6 py-20 text-center">
@@ -407,20 +348,6 @@ function Results() {
           </div>
 
           <div className="flex flex-wrap gap-3 print:hidden">
-            {canSaveAnalysis && (
-              <button
-                type="button"
-                onClick={handleSaveRepository}
-                disabled={savingRepository || authLoading}
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-yellow-200 bg-yellow-50 px-5 text-base font-semibold text-yellow-800 transition hover:bg-yellow-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {authLoading
-                  ? "Checking sign-in..."
-                  : savingRepository
-                    ? "Saving..."
-                    : "Save to Dashboard"}
-              </button>
-            )}
             <button
               type="button"
               onClick={handleDownloadJson}
@@ -438,14 +365,6 @@ function Results() {
             </button>
           </div>
         </div>
-        {(saveMessage || saveError) && (
-          <p
-            role={saveError ? "alert" : "status"}
-            className={`mt-5 text-sm ${saveError ? "text-red-600" : "text-green-700"}`}
-          >
-            {saveError || saveMessage}
-          </p>
-        )}
       </div>
 
       {/* AI STATUS */}

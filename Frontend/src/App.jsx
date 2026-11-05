@@ -3,7 +3,6 @@ import { Link, Route, Routes } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import ProtectedRoute from "./components/ProtectedRoute";
 
 import Home from "./pages/Home";
 import Features from "./pages/Features";
@@ -11,8 +10,6 @@ import About from "./pages/About";
 import Dashboard from "./pages/Dashboard";
 import Results from "./pages/Results";
 import History from "./pages/History";
-import Login from "./pages/Login";
-import AuthCallback from "./pages/AuthCallback";
 import GuestAnalysis from "./pages/GuestAnalysis";
 
 import "./App.css";
@@ -49,29 +46,13 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/features" element={<Features />} />
           <Route path="/about" element={<About />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/analyze" element={<GuestAnalysis />} />
 
-          {/* Application Pages */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+          {/* Public application pages */}
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/results" element={<Results />} />
           <Route path="/results/:analysisId" element={<Results />} />
-          <Route
-            path="/history"
-            element={
-              <ProtectedRoute>
-                <History />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/history" element={<History />} />
 
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />
