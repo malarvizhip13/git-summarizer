@@ -1,16 +1,10 @@
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 const defaultApiBaseUrl = import.meta.env.DEV
   ? "http://localhost:5000/api/v1"
-  : "";
+  : "https://summraization-ai-git.onrender.com/api/v1";
 const API_BASE_URL = (
   configuredApiBaseUrl || defaultApiBaseUrl
 ).replace(/\/+$/, "");
-
-if (!API_BASE_URL) {
-  throw new Error(
-    "VITE_API_BASE_URL must be set to the deployed backend API URL."
-  );
-}
 
 /**
  * Centralized API request handler.
