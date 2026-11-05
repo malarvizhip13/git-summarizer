@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 
 const requiredEnvVariables = [
@@ -34,23 +35,56 @@ module.exports = {
   // GitHub API configuration
   GITHUB_TOKEN: process.env.GITHUB_TOKEN || null,
 
-  // Ollama local AI configuration
+  // NVIDIA NIM AI configuration
+  NVIDIA_API_KEY: process.env.NVIDIA_API_KEY || null,
+
+  NVIDIA_BASE_URL:
+    process.env.NVIDIA_BASE_URL ||
+    "https://integrate.api.nvidia.com/v1",
+
+  NVIDIA_MODEL:
+    process.env.NVIDIA_MODEL ||
+    "nvidia/nemotron-3.5-lightning-30b-a3b",
+
+  NVIDIA_MAX_TOKENS:
+    Number(process.env.NVIDIA_MAX_TOKENS) || 4096,
+
+  NVIDIA_TEMPERATURE:
+    Number(process.env.NVIDIA_TEMPERATURE) || 0.2,
+
+  // Legacy Claude configuration (temporary)
+  ANTHROPIC_API_KEY:
+    process.env.ANTHROPIC_API_KEY || null,
+
+  CLAUDE_MODEL:
+    process.env.CLAUDE_MODEL || "claude-sonnet-5-5",
+
+  // Existing Ollama configuration (temporary)
   OLLAMA_BASE_URL:
-    process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
+    process.env.OLLAMA_BASE_URL ||
+    "http://localhost:11434/v1",
 
   OLLAMA_MODEL:
     process.env.OLLAMA_MODEL || "qwen2.5-coder:7b",
 
   OLLAMA_TIMEOUT:
     Number(process.env.OLLAMA_TIMEOUT) || 300000,
+
   // Temporary development user
   DEV_USER_ID: process.env.DEV_USER_ID || null,
-  GOOGLE_OAUTH_CLIENT_ID: process.env.GOOGLE_OAUTH_CLIENT_ID || null,
+
+  // Google OAuth configuration
+  GOOGLE_OAUTH_CLIENT_ID:
+    process.env.GOOGLE_OAUTH_CLIENT_ID || null,
+
   GOOGLE_OAUTH_CLIENT_SECRET:
     process.env.GOOGLE_OAUTH_CLIENT_SECRET || null,
+
   GOOGLE_OAUTH_CALLBACK_URL:
     process.env.GOOGLE_OAUTH_CALLBACK_URL ||
     "http://localhost:5000/api/v1/auth/google/callback",
+
+  // Frontend configuration
   FRONTEND_URL:
     process.env.FRONTEND_URL || "http://localhost:5173",
 };

@@ -1,6 +1,5 @@
 
 const env = require("../config/env");
-const { getOllamaClient } = require("../config/ollama");
 
 const {
   buildRepositorySummaryPrompt,
@@ -18,15 +17,15 @@ Provide accurate, structured and understandable technical explanations.
 Do not invent project details that are not supported by the supplied input.
 `;
 
-const DEFAULT_OUTPUT_TOKENS = 1200;
+const DEFAULT_OUTPUT_TOKENS = 4000;
 
 /**
- * Generate text using the local Ollama model.
+ * Generate text using NVIDIA NIM.
  */
 const generateText = async ({
   input,
   instructions = DEFAULT_INSTRUCTIONS,
-  maxOutputTokens = 500,
+  maxOutputTokens = DEFAULT_OUTPUT_TOKENS,
 } = {}) => {
   if (typeof input !== "string" || !input.trim()) {
     const error = new Error("A non-empty input is required.");
@@ -38,7 +37,9 @@ const generateText = async ({
     typeof instructions !== "string" ||
     !instructions.trim()
   ) {
-    const error = new Error("Instructions must be a non-empty string.");
+    const error = new Error(
+      "Instructions must be a non-empty string."
+    );
     error.statusCode = 400;
     throw error;
   }
@@ -55,62 +56,119 @@ const generateText = async ({
     throw error;
   }
 
-  const client = getOllamaClient();
+  if (!env.NVIDIA_API_KEY) {
+    const error = new Error(
+      "NVIDIA API key is not configured."
+    );
+    error.statusCode = 503;
+    throw error;
+  }
+
   const startedAt = Date.now();
   const promptCharacters = input.length;
 
   try {
     console.info("[AI] Inference started", {
-      model: env.OLLAMA_MODEL,
+      provider: "nvidia",
+      model: env.NVIDIA_MODEL,
       promptCharacters,
       maxOutputTokens,
+      thinkingEnabled: false,
     });
 
-    const response = await client.chat.completions.create({
-      model: env.OLLAMA_MODEL,
-      messages: [
-        {
-          role: "system",
-          content: instructions,
+    const response = await fetch(
+      `${env.NVIDIA_BASE_URL}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.NVIDIA_API_KEY}`,
+          "Content-Type": "application/json",
         },
-        {
-          role: "user",
-          content: input.trim(),
-        },
-      ],
-      max_tokens: maxOutputTokens,
-      temperature: 0.2,
-      stream: false,
-    });
+        body: JSON.stringify({
+          model: env.NVIDIA_MODEL,
+          messages: [
+            {
+              role: "system",
+              content: instructions,
+            },
+            {
+              role: "user",
+              content: input.trim(),
+            },
+          ],
+          temperature: env.NVIDIA_TEMPERATURE,
+          max_tokens: maxOutputTokens,
+          stream: false,
 
-    const choice = response.choices?.[0];
-    const outputText = choice?.message?.content?.trim();
+          // NVIDIA-specific parameter
+          chat_template_kwargs: {
+            enable_thinking: false,
+          },
+        }),
+        signal: AbortSignal.timeout(120000),
+      }
+    );
+
+    if (!response.ok) {
+      const responseBody = await response.text();
+
+      const error = new Error(
+        `NVIDIA API returned HTTP ${response.status}: ${responseBody}`
+      );
+
+      error.statusCode = response.status;
+      throw error;
+    }
+
+    const data = await response.json();
+
+    const choice = data.choices?.[0];
+
+    const outputText =
+      typeof choice?.message?.content === "string"
+        ? choice.message.content.trim()
+        : "";
+
     const finishReason = choice?.finish_reason || "unknown";
+
     const isComplete = finishReason === "stop";
 
     if (!outputText) {
-      const error = new Error("Ollama returned an empty response.");
+      const error = new Error(
+        "NVIDIA returned an empty response. " +
+        `Finish reason: ${finishReason}`
+      );
+
       error.statusCode = 502;
       throw error;
     }
 
     const durationMs = Date.now() - startedAt;
 
+    const usage = data.usage
+      ? {
+          input_tokens: data.usage.prompt_tokens ?? null,
+          output_tokens: data.usage.completion_tokens ?? null,
+          total_tokens: data.usage.total_tokens ?? null,
+        }
+      : null;
+
     console.info("[AI] Inference completed", {
-      model: response.model || env.OLLAMA_MODEL,
+      provider: "nvidia",
+      model: data.model || env.NVIDIA_MODEL,
       durationMs,
       promptCharacters,
       outputCharacters: outputText.length,
       finishReason,
       isComplete,
-      usage: response.usage || null,
+      usage,
     });
 
     return {
-      id: response.id || null,
-      model: response.model || env.OLLAMA_MODEL,
+      id: data.id || null,
+      model: data.model || env.NVIDIA_MODEL,
       outputText,
-      usage: response.usage || null,
+      usage,
       durationMs,
       finishReason,
       isComplete,
@@ -119,7 +177,8 @@ const generateText = async ({
     const durationMs = Date.now() - startedAt;
 
     console.error("[AI] Inference failed", {
-      model: env.OLLAMA_MODEL,
+      provider: "nvidia",
+      model: env.NVIDIA_MODEL,
       durationMs,
       promptCharacters,
       maxOutputTokens,
@@ -131,10 +190,12 @@ const generateText = async ({
     }
 
     const wrappedError = new Error(
-      `Local AI request failed: ${error.message}`
+      `NVIDIA API request failed: ${error.message}`
     );
 
-    wrappedError.statusCode = 502;
+    wrappedError.statusCode =
+      error.name === "TimeoutError" ? 504 : 502;
+
     wrappedError.cause = error;
 
     throw wrappedError;
@@ -151,13 +212,11 @@ const generateRepositorySummary = async ({
   analysis,
   files,
 } = {}) => {
-  // Build additional repository intelligence from retrieved source files.
   const intelligence = analyzeRepositoryIntelligence({
     files,
     analysis,
   });
 
-  // Preserve existing static analysis and add intelligence.
   const enrichedAnalysis = {
     ...(analysis || {}),
     intelligence,
