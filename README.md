@@ -220,7 +220,8 @@ Configure these backend environment variables in the hosting provider:
 - `DATABASE_URL` using Render PostgreSQL's internal database URL, or the
   individual `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`
   values
-- `DB_SSL=true` if required by the database provider
+- `DB_SSL=true` (production defaults to SSL; keep this true for Render
+  PostgreSQL)
 - `NVIDIA_API_KEY`
 - `FRONTEND_URL` set to the deployed frontend origin (scheme and host only)
 - `PORT` if the platform does not provide it automatically

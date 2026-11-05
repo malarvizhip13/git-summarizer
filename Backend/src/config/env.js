@@ -13,6 +13,14 @@ for (const key of requiredEnvVariables) {
 }
 
 const nodeEnv = process.env.NODE_ENV || "development";
+const dbSslValue = process.env.DB_SSL;
+if (
+  dbSslValue !== undefined &&
+  !["true", "false"].includes(dbSslValue.toLowerCase())
+) {
+  throw new Error("DB_SSL must be set to 'true' or 'false'.");
+}
+
 const frontendUrlValue =
   process.env.FRONTEND_URL ||
   (nodeEnv === "production" ? "" : "http://localhost:5173");
@@ -54,7 +62,9 @@ module.exports = {
   DB_NAME: process.env.DB_NAME || null,
   DB_USER: process.env.DB_USER || null,
   DB_PASSWORD: process.env.DB_PASSWORD || null,
-  DB_SSL: process.env.DB_SSL === "true",
+  DB_SSL: dbSslValue === undefined
+    ? nodeEnv === "production"
+    : dbSslValue.toLowerCase() === "true",
   DB_MIGRATION_USER: process.env.DB_MIGRATION_USER || null,
   DB_MIGRATION_PASSWORD: process.env.DB_MIGRATION_PASSWORD || null,
 
