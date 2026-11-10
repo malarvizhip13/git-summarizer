@@ -11,7 +11,8 @@ import Dashboard from "./pages/Dashboard";
 import Results from "./pages/Results";
 import History from "./pages/History";
 import GuestAnalysis from "./pages/GuestAnalysis";
-
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
 import "./App.css";
 
 function NotFound() {
@@ -47,7 +48,9 @@ function App() {
           <Route path="/features" element={<Features />} />
           <Route path="/about" element={<About />} />
           <Route path="/analyze" element={<GuestAnalysis />} />
-
+ 
+           <Route path="/signin" element={<SignIn />} />
+           <Route path="/signup" element={<SignUp />} />
           {/* Public application pages */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/results" element={<Results />} />

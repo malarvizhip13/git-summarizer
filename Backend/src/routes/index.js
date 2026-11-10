@@ -3,9 +3,11 @@ const express = require("express");
 
 const { query } = require("../config/database");
 const repositoryController = require("../controllers/repositoryController");
-
+const authController = require("../controllers/authController");
 const router = express.Router();
-
+// AUTH ROUTES
+router.post("/auth/signup", authController.signup);
+router.post("/auth/signin", authController.signin);
 /**
  * GET /api/v1/health
  */
