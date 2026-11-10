@@ -72,23 +72,24 @@ const saveRepository = async ({
 /**
  * Retrieve repositories available in the public library.
  */
-const getPublicRepositories = async () => {
-  return repositoryRepository.findPublicRepositories();
+const getPublicRepositories = async (userId) => {
+  return repositoryRepository.findPublicRepositories(userId);
 };
 
 /**
  * Retrieve a repository by ID.
  */
-const getRepositoryById = async (repositoryId) => {
+const getRepositoryById = async (repositoryId,userId) => {
   if (!isValidUUID(repositoryId)) {
     const error = new Error("Invalid repository ID.");
     error.statusCode = 400;
     throw error;
   }
 
-  const repository = await repositoryRepository.findRepositoryById(
-    repositoryId
-  );
+ const repository = await repositoryRepository.findRepositoryById(
+  repositoryId,
+  userId
+);
 
   if (!repository) {
     const error = new Error("Repository not found.");
@@ -99,16 +100,18 @@ const getRepositoryById = async (repositoryId) => {
   return repository;
 };
 
-const saveRepositoryById = async (repositoryId) => {
-  const repository = await getRepositoryById(repositoryId);
+const saveRepositoryById = async (repositoryId, userId) => {
+   const repository = await getRepositoryById(repositoryId, userId);
 
   if (repository.is_saved) {
     return repository;
   }
 
   const savedRepository =
-    await repositoryRepository.markRepositoryAsSaved(repositoryId);
-
+   await repositoryRepository.markRepositoryAsSaved(
+  repositoryId,
+  userId
+);
   if (!savedRepository) {
     const error = new Error("Repository could not be saved.");
     error.statusCode = 404;
@@ -183,18 +186,17 @@ const analyzeRepositoryRecord = async (repository) => {
 /**
  * Analyze a saved GitHub repository and persist its result.
  */
-const analyzeRepositoryById = async (repositoryId) => {
-  const repository = await getRepositoryById(repositoryId);
-
+const analyzeRepositoryById = async (repositoryId, userId) => {
+const repository = await getRepositoryById(repositoryId, userId);
   return analyzeRepositoryRecord(repository);
 };
 
-const analyzeRepositoryUrl = async (githubUrl) => {
+const analyzeRepositoryUrl = async (githubUrl,userId) => {
   const { owner, repository } =
     parseGithubRepositoryUrl(githubUrl);
   const githubRepository = await getRepository(owner, repository);
   const repositoryRecord = await saveRepository({
-    userId: env.PUBLIC_USER_ID,
+   userId: userId,
     githubUrl: githubRepository.htmlUrl,
     githubRepository,
     isSaved: true,
@@ -210,8 +212,8 @@ const analyzeRepositoryUrl = async (githubUrl) => {
 /**
  * Retrieve analysis history for a saved repository.
  */
-const getAnalysisHistory = async (repositoryId) => {
-  const repository = await getRepositoryById(repositoryId);
+const getAnalysisHistory = async (repositoryId,userId) => {
+  const repository = await getRepositoryById(repositoryId,userId);
 
   const analyses = await analysisRepository.findAnalysesByRepository(
     repository.id
@@ -226,15 +228,17 @@ const getAnalysisHistory = async (repositoryId) => {
 /**
  * Retrieve one persisted analysis.
  */
-const getAnalysisById = async (analysisId) => {
+const getAnalysisById = async (analysisId,userId) => {
   if (!isValidUUID(analysisId)) {
     const error = new Error("Invalid analysis ID.");
     error.statusCode = 400;
     throw error;
   }
 
-  const analysis = await analysisRepository.findAnalysisById(analysisId);
-
+ const analysis = await analysisRepository.findAnalysisById(
+  analysisId,
+  userId
+);
   if (!analysis) {
     const error = new Error("Analysis not found.");
     error.statusCode = 404;

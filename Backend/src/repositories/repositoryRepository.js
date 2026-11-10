@@ -73,7 +73,7 @@ async function upsertRepository(repositoryData) {
 /**
  * Retrieve saved repositories and repositories with analysis history.
  */
-async function findPublicRepositories() {
+async function findPublicRepositories(userId) {
   const sql = `
     SELECT
       id,
@@ -86,16 +86,19 @@ async function findPublicRepositories() {
       created_at,
       updated_at
     FROM repositories
-    WHERE is_saved = TRUE
-      OR EXISTS (
-        SELECT 1
-        FROM analyses
-        WHERE analyses.repository_id = repositories.id
+    WHERE repositories.user_id = $1
+      AND (
+        is_saved = TRUE
+        OR EXISTS (
+          SELECT 1
+          FROM analyses
+          WHERE analyses.repository_id = repositories.id
+        )
       )
     ORDER BY created_at DESC;
   `;
 
-  const result = await pool.query(sql);
+  const result = await pool.query(sql, [userId]);
 
   return result.rows;
 }
@@ -103,7 +106,7 @@ async function findPublicRepositories() {
 /**
  * Retrieve one repository by ID.
  */
-async function findRepositoryById(repositoryId) {
+async function findRepositoryById(repositoryId, userId) {
   const sql = `
     SELECT
       id,
@@ -116,22 +119,23 @@ async function findRepositoryById(repositoryId) {
       created_at,
       updated_at
     FROM repositories
-    WHERE id = $1
-    LIMIT 1;
+   WHERE id = $1
+  AND user_id = $2
+LIMIT 1;
   `;
 
-  const result = await pool.query(sql, [repositoryId]);
-
+ const result = await pool.query(sql, [repositoryId, userId]);
   return result.rows[0] || null;
 }
 
-async function markRepositoryAsSaved(repositoryId) {
+async function markRepositoryAsSaved(repositoryId, userId) {
   const sql = `
     UPDATE repositories
     SET
       is_saved = TRUE,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = $1
+  AND user_id = $2
     RETURNING
       id,
       user_id,
@@ -144,8 +148,7 @@ async function markRepositoryAsSaved(repositoryId) {
       updated_at;
   `;
 
-  const result = await pool.query(sql, [repositoryId]);
-
+ const result = await pool.query(sql, [repositoryId, userId]);
   return result.rows[0] || null;
 }
 

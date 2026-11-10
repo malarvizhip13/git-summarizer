@@ -38,6 +38,7 @@ function SignIn() {
       }
 
      sessionStorage.setItem("loggedInUser", JSON.stringify(data.user));
+sessionStorage.setItem("token", data.token);
 
 window.dispatchEvent(new Event("userLogin"));
 

@@ -145,7 +145,7 @@ const findAnalysesByRepository = async (repositoryId) => {
 /**
  * Retrieve one analysis by ID.
  */
-const findAnalysisById = async (analysisId) => {
+const findAnalysisById = async (analysisId,userId) => {
   const sql = `
     SELECT
       a.id,
@@ -162,10 +162,11 @@ const findAnalysisById = async (analysisId) => {
     INNER JOIN repositories r
       ON r.id = a.repository_id
     WHERE a.id = $1
+      AND r.user_id = $2
     LIMIT 1;
   `;
 
-  const result = await pool.query(sql, [analysisId]);
+  const result = await pool.query(sql, [analysisId,userId]);
 
   return result.rows[0] || null;
 };

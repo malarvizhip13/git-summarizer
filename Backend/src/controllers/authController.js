@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const { query } = require("../config/database");
+const jwt = require("jsonwebtoken");
 
 // SIGN UP
 const signup = async (req, res, next) => {
@@ -82,15 +83,28 @@ const signin = async (req, res, next) => {
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: "Signin successful",
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
-    });
+   const token = jwt.sign(
+  {
+    id: user.id,
+    email: user.email,
+  },
+  process.env.JWT_SECRET,
+  {
+    expiresIn: "1d",
+  }
+);
+
+return res.status(200).json({
+  success: true,
+  message: "Signin successful",
+  token,
+  user: {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+  },
+});
+
   } catch (error) {
     next(error);
   }

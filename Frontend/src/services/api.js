@@ -21,15 +21,18 @@ const apiRequest = async (endpoint, options = {}) => {
     ...requestOptions
   } = options;
 
+  const token = sessionStorage.getItem("token");
+
   let response;
 
   try {
     response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...requestOptions,
-      headers: {
-        Accept: "application/json",
-        ...headers,
-      },
+     headers: {
+  Accept: "application/json",
+  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  ...headers,
+},
     });
   } catch {
     throw new Error(

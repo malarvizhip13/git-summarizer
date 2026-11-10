@@ -39,12 +39,12 @@ const createRepository = async (req, res, next) => {
       repository
     );
 
-    const savedRepository = await saveRepository({
-      userId: env.PUBLIC_USER_ID,
-      githubUrl,
-      githubRepository,
-      isSaved: true,
-    });
+   const savedRepository = await saveRepository({
+  userId: req.user.id,
+  githubUrl,
+  githubRepository,
+  isSaved: true,
+});
 
     const { created, ...repositoryData } = savedRepository;
 
@@ -62,8 +62,10 @@ const createRepository = async (req, res, next) => {
 
 const saveRepositoryController = async (req, res, next) => {
   try {
-    const repository = await saveRepositoryById(req.params.id);
-
+   const repository = await saveRepositoryById(
+  req.params.id,
+  req.user.id
+);
     return res.status(200).json({
       success: true,
       message: "Repository saved successfully",
@@ -83,8 +85,7 @@ const saveRepositoryController = async (req, res, next) => {
  */
 const getRepositories = async (req, res, next) => {
   try {
-    const repositories = await getPublicRepositories();
-
+   const repositories = await getPublicRepositories(req.user.id);
     return res.status(200).json({
       success: true,
       message: "Repositories retrieved successfully",
@@ -105,8 +106,10 @@ const getRepositories = async (req, res, next) => {
  */
 const getRepositoryById = async (req, res, next) => {
   try {
-    const repository = await getRepositoryByIdService(req.params.id);
-
+  const repository = await getRepositoryByIdService(
+  req.params.id,
+  req.user.id
+);
     return res.status(200).json({
       success: true,
       message: "Repository retrieved successfully",
@@ -126,8 +129,10 @@ const getRepositoryById = async (req, res, next) => {
  */
 const analyzeRepository = async (req, res, next) => {
   try {
-    const result = await analyzeRepositoryByIdService(req.params.id);
-
+    const result = await analyzeRepositoryByIdService(
+  req.params.id,
+  req.user.id
+);
     return res.status(200).json({
       success: true,
       message: "Repository analysis completed successfully",
@@ -145,9 +150,10 @@ const analyzeRepository = async (req, res, next) => {
  */
 const analyzeRepositoryUrl = async (req, res, next) => {
   try {
-    const result = await analyzeRepositoryUrlService(
-      req.body?.githubUrl
-    );
+   const result = await analyzeRepositoryUrlService(
+  req.body?.githubUrl,
+  req.user.id
+);
 
     return res.status(200).json({
       success: true,
@@ -170,8 +176,10 @@ const analyzeRepositoryUrl = async (req, res, next) => {
  */
 const getRepositoryAnalysisHistory = async (req, res, next) => {
   try {
-    const result = await getAnalysisHistory(req.params.id);
-
+   const result = await getAnalysisHistory(
+  req.params.id,
+  req.user.id
+);
     return res.status(200).json({
       success: true,
       count: result.analyses.length,
@@ -193,8 +201,9 @@ const getRepositoryAnalysisHistory = async (req, res, next) => {
 const getAnalysisByIdController = async (req, res, next) => {
   try {
     const analysis = await getAnalysisByIdService(
-      req.params.analysisId
-    );
+  req.params.analysisId,
+  req.user.id
+);
 
     return res.status(200).json({
       success: true,

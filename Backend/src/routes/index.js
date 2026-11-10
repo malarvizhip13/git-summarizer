@@ -1,6 +1,6 @@
 
 const express = require("express");
-
+const authMiddleware = require("../middleware/authMiddleware");
 const { query } = require("../config/database");
 const repositoryController = require("../controllers/repositoryController");
 const authController = require("../controllers/authController");
@@ -31,42 +31,43 @@ router.get("/health", async (req, res, next) => {
 /**
  * POST /api/v1/repositories
  */
-router.post("/repositories", repositoryController.createRepository);
+router.post("/repositories", authMiddleware, repositoryController.createRepository);
 
 /**
  * POST /api/v1/analyses
  */
 router.post(
   "/analyses",
+  authMiddleware,
   repositoryController.analyzeRepositoryUrl
 );
 
 /**
  * GET /api/v1/repositories
  */
-router.get("/repositories", repositoryController.getRepositories);
-
+router.get("/repositories", authMiddleware, repositoryController.getRepositories);
 /**
  * GET /api/v1/repositories/:id
  */
-router.get("/repositories/:id", repositoryController.getRepositoryById);
+router.get("/repositories/:id", authMiddleware, repositoryController.getRepositoryById);
 
 /**
  * PATCH /api/v1/repositories/:id/save
  */
-router.patch("/repositories/:id/save", repositoryController.saveRepository);
-
+router.patch("/repositories/:id/save", authMiddleware, repositoryController.saveRepository);
 /**
  * POST /api/v1/repositories/:id/analyze
  */
-router.post(
-  "/repositories/:id/analyze",
-  repositoryController.analyzeRepository
-);
+router.post("/repositories/:id/analyze", authMiddleware, repositoryController.analyzeRepository);
 router.get(
   "/repositories/:id/analyses",
+  authMiddleware,
   repositoryController.getAnalysisHistory
 );
+router.get(
+  "/analyses/:analysisId",
+  authMiddleware,
+  repositoryController.getAnalysisById
+);
 
-router.get("/analyses/:analysisId", repositoryController.getAnalysisById);
 module.exports = router;
