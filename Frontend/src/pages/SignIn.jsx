@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
+import { API_BASE_URL } from "../services/api";
 function SignIn() {
   const navigate = useNavigate();
 
@@ -17,7 +17,7 @@ function SignIn() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/v1/auth/signin",
+        `${API_BASE_URL}/auth/signin`,
         {
           method: "POST",
           headers: {
@@ -39,7 +39,6 @@ function SignIn() {
 
      sessionStorage.setItem("loggedInUser", JSON.stringify(data.user));
 sessionStorage.setItem("token", data.token);
-
 window.dispatchEvent(new Event("userLogin"));
 
 alert("Sign In Successful!");
