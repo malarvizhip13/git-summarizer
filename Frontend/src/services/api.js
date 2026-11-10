@@ -1,7 +1,9 @@
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
 const defaultApiBaseUrl = import.meta.env.DEV
   ? "http://localhost:5000/api/v1"
-  : "https://summraization-ai-git.onrender.com/api/v1";
+  : "https://git-summarizer-backend.onrender.com/api/v1";
+
 const API_BASE_URL = (
   configuredApiBaseUrl || defaultApiBaseUrl
 ).replace(/\/+$/, "");
