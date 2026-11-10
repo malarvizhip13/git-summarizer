@@ -4,7 +4,7 @@ const defaultApiBaseUrl = import.meta.env.DEV
   ? "http://localhost:5000/api/v1"
   : "https://git-summarizer-backend.onrender.com/api/v1";
 
-const API_BASE_URL = (
+export const API_BASE_URL = (
   configuredApiBaseUrl || defaultApiBaseUrl
 ).replace(/\/+$/, "");
 
